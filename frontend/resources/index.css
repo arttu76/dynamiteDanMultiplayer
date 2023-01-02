@@ -1,0 +1,23 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#container {
+    position: relative;
+    height: 192px;
+    width: 256px;
+    transform-origin: center;
+    image-rendering: pixelated;
+}
+
+canvas {
+    position: absolute;
+} 

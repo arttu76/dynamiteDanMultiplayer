@@ -1,0 +1,3 @@
+[submodule "disassembly"]
+	path = disassembly
+	url = https://github.com/Ritchie333/dynamitedan

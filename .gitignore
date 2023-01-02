@@ -1,0 +1,10 @@
+node_modules
+static
+**/dist
+
+.disassembly
+
+commonTypes.d.ts
+commonTypes.js
+tsconfig.tsbuildinfo
+
