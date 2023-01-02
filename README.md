@@ -13,7 +13,7 @@
     ./buildWithDocker.sh
 
 ## What to do with the build:
-Open `frontend/dist/index.html`in your brower.
+Open `frontend/dist/index.html`in your browser.
 
 ## Development build
 If you want to do a development build which automatically updates components when you modify the code, do:
