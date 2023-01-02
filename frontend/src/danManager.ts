@@ -32,8 +32,8 @@ export default class DanManager {
 
     const frames = this.parseDanFrames();
     this.player = new Dan(
-      50,
-      30 - danHeightDeficiencyInPixels,
+      0,
+      30 - danHeightDeficiencyInPixels, // 50 - danHeightDeficiencyInPixels,
       true,
       0,
       frames.rightFacingFrames,
@@ -76,59 +76,59 @@ export default class DanManager {
 
   private updatePlayer(): void {
     const collidesWithRoom = (offsetX: number, offsetY: number) => {
-      this.player.x += offsetX;
-      this.player.y += offsetY;
+      this.player
+        .getCurrentFrame()
+        .setXY(this.player.x + offsetX, this.player.y + offsetY);
       const collisionResult = this.player
         .getCurrentFrame()
         .isInCollisionWith(this.roomManager.getCurrentRoom());
-      this.player.x -= offsetX;
-      this.player.y -= offsetY;
+      this.player
+        .getCurrentFrame()
+        .setXY(this.player.x - offsetX, this.player.y - offsetY);
       return collisionResult;
     };
 
     this.player.getCurrentFrame().hide();
 
     const isOnStableGround = collidesWithRoom(0, 1);
-    console.log("y="+this.player.y+" ... on stable ground: "+isOnStableGround);
 
-    if (
-      isOnStableGround &&
-      this.pressedLeft &&
-      !this.pressedRight &&
-      !collidesWithRoom(-1, 0)
-    ) {
+    if (this.pressedLeft && !this.pressedRight && !collidesWithRoom(-1, 0)) {
       this.player.x--;
       this.player.facingLeft = true;
       this.player.frame = this.player.frame === 0 ? 3 : this.player.frame - 1;
     }
-    if (
-      isOnStableGround &&
-      !this.pressedLeft &&
-      this.pressedRight &&
-      !collidesWithRoom(1, 0)
-    ) {
+    if (!this.pressedLeft && this.pressedRight && !collidesWithRoom(1, 0)) {
       this.player.x++;
       this.player.facingLeft = false;
       this.player.frame = (this.player.frame + 1) % 4;
     }
 
-    if ((isOnStableGround && this.pressedJump) || this.jumpFrame > 0) {
+    if (this.jumpFrame > 0) {
       this.jumpFrame++;
+      // hit head on the ceilin?
+      if (collidesWithRoom(0, -1)) {
+        this.jumpFrame = Math.max(this.jumpFrame, 20);
+      }
       if (this.jumpFrame > 40) {
         this.jumpFrame = 0;
-      }
-    }
-    if (this.jumpFrame > 0) {
-      if (this.jumpFrame > 1 && isOnStableGround) {
-        this.jumpFrame = 0;
       } else {
-        this.player.y -= Math.round(
+        const adjustedY = -Math.round(
           Math.sin(this.jumpFrame / Math.PI / 1.95) * 1.8
         );
+        if (adjustedY && collidesWithRoom(0, adjustedY)) {
+          this.jumpFrame = 0;
+        } else {
+          this.player.y += adjustedY;
+        }
       }
     }
 
-    if(this.jumpFrame===0 && !isOnStableGround) {
+    // start jump if on stable ground and not already jumping
+    if (isOnStableGround && this.pressedJump && this.jumpFrame === 0) {
+      this.jumpFrame = 1;
+    }
+
+    if (this.jumpFrame === 0 && !isOnStableGround) {
       this.player.y++;
     }
 

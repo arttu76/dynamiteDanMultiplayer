@@ -211,24 +211,24 @@ export default class DrawSurface extends Positionable {
     }
 
     for (let y = 0; y < this.heightInPixels; y++) {
+      const yInAnother = y + this.y - another.y;
+      if (yInAnother < 0 || yInAnother > another.heightInPixels - 1) {
+        continue;
+      }
+
       for (let x = 0; x < this.widthInPixels; x++) {
+        const xInAnother = x + this.x - another.x;
+        if (xInAnother < 0 || xInAnother > another.widthInPixels - 1) {
+          continue;
+        }
+
         if (!this.pixels[y][x]) {
           continue;
         }
 
-        const yInAnother = y + (this.y - another.y);
-        if (yInAnother < 0 || yInAnother > another.heightInPixels - 1) {
-          continue;
+        if (another.pixels[yInAnother][xInAnother]) {
+          return true;
         }
-        const xInAnother = x + (this.x - another.x);
-        if (xInAnother < 0 || xInAnother > another.widthInPixels - 1) {
-          continue;
-        }
-        if (!another.pixels[yInAnother][xInAnother]) {
-          continue;
-        }
-
-        return true;
       }
     }
 
