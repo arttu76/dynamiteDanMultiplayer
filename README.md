@@ -13,7 +13,7 @@
     ./buildWithDocker.sh
 
 ## What to do with the build:
-Open `frontend/dist/index.html`in your browser.
+Open `frontend/dist/index.html`in your browser. Use arrow keys to move (once movement collision detection has been fixed) and wasd-keys to change rooms (debug feature).
 
 ## Development build
 If you want to do a development build which automatically updates components when you modify the code, do:
