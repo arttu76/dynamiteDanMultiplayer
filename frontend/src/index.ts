@@ -33,7 +33,8 @@ resizer();
   });
 
   setInterval(() => {
-    roomManager.updateMonsters(Date.now());
-    danManager.update();
+    const time=Date.now();
+    roomManager.updateMonsters(time);
+    danManager.update(time);
   }, 1000 / 25);
 })();

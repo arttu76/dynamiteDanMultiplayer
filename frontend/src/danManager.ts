@@ -157,8 +157,12 @@ export default class DanManager {
 
   private updateOthers() {}
 
-  update(): void {
+  update(time: number): void {
     this.updateOthers();
     this.updatePlayer();
+    this.roomManager.updateMonsterCollisions(
+      this.player.getCurrentFrame(),
+      time
+      );
   }
 }

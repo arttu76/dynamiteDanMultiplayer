@@ -17,6 +17,7 @@ export default class Monster extends Positionable {
   diffAmount: number;
   baseX: number;
   baseY: number;
+  diedAt: number = 0;
   state: MonsterState;
 
   constructor(
@@ -71,6 +72,14 @@ export default class Monster extends Positionable {
     this.frames.forEach((frame) => frame.flipHorizontally(flip));
   }
 
+  isDead(time: number): boolean {
+    return this.diedAt + 1000 * 5 > time;
+  }
+
+  isInCollisionWith(other: DrawSurface): boolean {
+    return this.frames[this.currentFrame].isInCollisionWith(other);
+  }
+
   update(time: number) {
     const tick = Math.round((time / 1000) * 15);
 
@@ -95,5 +104,9 @@ export default class Monster extends Positionable {
     this.frames[this.currentFrame].hide();
     this.currentFrame = tick % this.frames.length;
     this.frames[this.currentFrame].setPosition(this.x, this.y).show();
+
+    this.frames.forEach((f) =>
+      f.setStyle({ opacity: this.isDead(time) ? "0.125" : "1" })
+    );
   }
 }

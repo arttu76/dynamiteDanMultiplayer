@@ -182,9 +182,9 @@ export default class DrawSurface extends Positionable {
 
   // { border: '1px solid blue', opacity: 0.5 }
   setStyle(css: { [key: string]: string }): DrawSurface {
-    Object.keys(css).forEach((key) =>
-      this.canvas.style.setProperty(key, css[key])
-    );
+    Object.keys(css).forEach((key) => {
+      this.canvas.style.setProperty(key, css[key]);
+    });
     return this;
   }
 

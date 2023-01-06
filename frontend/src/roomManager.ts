@@ -51,6 +51,13 @@ export default class RoomManager {
     this.getCurrentMonsters().forEach((m) => m.update(time));
   }
 
+  updateMonsterCollisions(player: DrawSurface, time: number): void {
+    this.getCurrentMonsters()
+    .filter(m => !m.isDead(time))
+    .filter(m => m.isInCollisionWith(player))
+    .forEach(m => m.diedAt=time);
+  }
+
   private getRoomIndex() {
     return this.roomX + this.roomY * 8;
   }
@@ -174,7 +181,7 @@ export default class RoomManager {
       }
 
       return range(amount).map(() => {
-/*
+        /*
         console.log("monster dump from " + h(monsterPointer));
         ROM.hexDump(monsterPointer, 8, [
           "x",
@@ -204,6 +211,7 @@ export default class RoomManager {
         const spriteWidthInChars = spriteSize & 0b11;
         const spriteHeightInChars = (spriteSize & 0b11111100) >> 2;
 
+        /*
         console.log(
           "Monster id: " +
             spriteId +
@@ -212,6 +220,7 @@ export default class RoomManager {
             " FRAMES:" +
             maxFrames
         );
+        */
 
         const spriteDataSize = spriteWidthInChars * spriteHeightInChars * 8;
         const frames = range(maxFrames).map(
