@@ -47,8 +47,8 @@ export default class RoomManager {
     this.moveToRoom(this.roomX, Math.max(0, this.roomY - 1));
   }
 
-  updateMonsters(): void {
-    this.getCurrentMonsters().forEach((m) => m.update());
+  updateMonsters(time: number): void {
+    this.getCurrentMonsters().forEach((m) => m.update(time));
   }
 
   private getRoomIndex() {

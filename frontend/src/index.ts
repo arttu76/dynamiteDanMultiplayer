@@ -32,9 +32,8 @@ resizer();
     if (event.key === "ArrowLeft") danManager.pressedLeft = true;
   });
 
-  let monsterSlowdown = 0;
   setInterval(() => {
-    monsterSlowdown++ % 2 && roomManager.updateMonsters();
+    roomManager.updateMonsters(Date.now());
     danManager.update();
   }, 1000 / 25);
 })();

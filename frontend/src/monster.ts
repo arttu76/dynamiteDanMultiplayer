@@ -11,12 +11,12 @@ enum MonsterState {
 export default class Monster extends Positionable {
   id: number;
   frames: DrawSurface[];
+  initialDiffOffset: number;
   currentFrame: number;
   horizontal: boolean;
-  minVaryingCoordinate: number;
-  maxVaryingCoordinate: number;
-  dirX: number;
-  dirY: number;
+  diffAmount: number;
+  baseX: number;
+  baseY: number;
   state: MonsterState;
 
   constructor(
@@ -32,24 +32,26 @@ export default class Monster extends Positionable {
     super(x * 8, y * 8);
 
     this.horizontal = horizontal;
-    const direction = inverseDir ? -1 : 1;
-    this.dirX = horizontal ? direction : 0;
-    this.dirY = horizontal ? 0 : direction;
 
-    if (this.dirX === -1) {
-      this.x += 8;
-    }
-    if (this.dirY === -1) {
-      this.y += 8;
-    }
+    this.diffAmount = (maxVaryingCoordinate + 1 - minVaryingCoordinate) * 8;
 
-    this.minVaryingCoordinate = minVaryingCoordinate * 8;
-    this.maxVaryingCoordinate = (maxVaryingCoordinate + 1) * 8;
+    this.initialDiffOffset =
+      (minVaryingCoordinate - (horizontal ? x : y)) * 8 + (inverseDir ? -8 : 0);
+
+    if (horizontal) {
+      this.baseX = Math.min(minVaryingCoordinate, x) * 8;
+      this.baseY = y * 8;
+    } else {
+      this.baseX = x * 8;
+      this.baseY = Math.min(minVaryingCoordinate, y) * 8;
+    }
 
     this.frames = frames;
     this.frames.forEach((f) => f.flipHorizontally(inverseDir));
 
     this.currentFrame = 0;
+
+    this.id = id;
   }
 
   setId(id: number) {
@@ -69,32 +71,29 @@ export default class Monster extends Positionable {
     this.frames.forEach((frame) => frame.flipHorizontally(flip));
   }
 
-  update() {
-    this.x += this.dirX;
-    this.y += this.dirY;
+  update(time: number) {
+    const tick = Math.round((time / 1000) * 15);
+
+    const totalCurrentDiff =
+      (this.initialDiffOffset + tick) % (this.diffAmount * 2);
+    const goingBack = totalCurrentDiff >= this.diffAmount;
+    const halfCurrentDiff = totalCurrentDiff % this.diffAmount;
 
     if (this.horizontal) {
-      if (this.x <= this.minVaryingCoordinate) {
-        this.dirX = 1;
-        this.flipFrames(false);
-      }
-      if (this.x >= this.maxVaryingCoordinate) {
-        this.dirX = -1;
-        this.flipFrames(true);
-      }
+      this.flipFrames(goingBack);
+      this.x =
+        this.baseX +
+        (goingBack ? this.diffAmount - halfCurrentDiff : halfCurrentDiff);
     }
 
     if (!this.horizontal) {
-      if (this.y <= this.minVaryingCoordinate) {
-        this.dirY = 1;
-      }
-      if (this.y >= this.maxVaryingCoordinate) {
-        this.dirY = -1;
-      }
+      this.y =
+        this.baseY +
+        (goingBack ? this.diffAmount - halfCurrentDiff : halfCurrentDiff);
     }
 
     this.frames[this.currentFrame].hide();
-    this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+    this.currentFrame = tick % this.frames.length;
     this.frames[this.currentFrame].setPosition(this.x, this.y).show();
   }
 }
