@@ -24,7 +24,6 @@ export default class DanManager {
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
   public pressedJump: boolean = false;
-  jumpFrame = 0;
 
   constructor(roomManager: RoomManager) {
     this.roomManager = roomManager;
@@ -32,8 +31,8 @@ export default class DanManager {
 
     const frames = this.parseDanFrames();
     this.player = new Dan(
-      0,
-      30 - danHeightDeficiencyInPixels, // 50 - danHeightDeficiencyInPixels,
+      70,
+      38, // 50 - danHeightDeficiencyInPixels,
       true,
       0,
       frames.rightFacingFrames,
@@ -90,45 +89,76 @@ export default class DanManager {
 
     this.player.getCurrentFrame().hide();
 
-    const isOnStableGround = collidesWithRoom(0, 1);
+    let isOnStableGround = collidesWithRoom(0, 1);
 
-    if (this.pressedLeft && !this.pressedRight && !collidesWithRoom(-1, 0)) {
-      this.player.x--;
-      this.player.facingLeft = true;
-      this.player.frame = this.player.frame === 0 ? 3 : this.player.frame - 1;
-    }
-    if (!this.pressedLeft && this.pressedRight && !collidesWithRoom(1, 0)) {
-      this.player.x++;
-      this.player.facingLeft = false;
-      this.player.frame = (this.player.frame + 1) % 4;
-    }
-
-    if (this.jumpFrame > 0) {
-      this.jumpFrame++;
-      // hit head on the ceilin?
-      if (collidesWithRoom(0, -1)) {
-        this.jumpFrame = Math.max(this.jumpFrame, 20);
+    if (this.pressedLeft && !this.pressedRight) {
+      let walkedLeft = false;
+      // walk horizontally to left
+      if (!collidesWithRoom(-1, 0)) {
+        walkedLeft = true;
+        // try climbing
+      } else if (!collidesWithRoom(-1, -1)) {
+        walkedLeft = true;
+        this.player.y--;
       }
-      if (this.jumpFrame > 40) {
-        this.jumpFrame = 0;
-      } else {
-        const adjustedY = -Math.round(
-          Math.sin(this.jumpFrame / Math.PI / 1.95) * 1.8
-        );
-        if (adjustedY && collidesWithRoom(0, adjustedY)) {
-          this.jumpFrame = 0;
-        } else {
-          this.player.y += adjustedY;
+      if (walkedLeft) {
+        this.player.x--;
+        this.player.facingLeft = true;
+        this.player.frame = this.player.frame === 0 ? 3 : this.player.frame - 1;
+      }
+    }
+
+    if (!this.pressedLeft && this.pressedRight) {
+      let walkedRight = false;
+      // walk horizontally to right
+      if (!collidesWithRoom(1, 0)) {
+        walkedRight = true;
+        // try climbing
+      } else if (!collidesWithRoom(1, -1)) {
+        walkedRight = true;
+        this.player.y--;
+      }
+
+      if (walkedRight) {
+        this.player.x++;
+        this.player.facingLeft = false;
+        this.player.frame = (this.player.frame + 1) % 4;
+      }
+    }
+
+    this.player.jumpVelocity = Math.min(50, this.player.jumpVelocity + 1);
+
+    // going upwards and hit head?
+    if (
+      !isOnStableGround &&
+      this.player.jumpVelocity < 0 &&
+      collidesWithRoom(0, this.player.jumpVelocity)
+    ) {
+      this.player.jumpVelocity = 1;
+    }
+
+    // landed?
+    if (!isOnStableGround) {
+      for (let y = 0; y < this.player.jumpVelocity + 1; y++) {
+        if (collidesWithRoom(0, y)) {
+          this.player.y += y - 1;
+          isOnStableGround = true;
+          break;
         }
       }
+      // didn't land, accelerate downwards
+      if (!isOnStableGround) {
+        this.player.y += this.player.jumpVelocity;
+      }
     }
 
-    // start jump if on stable ground and not already jumping
-    if (isOnStableGround && this.pressedJump && this.jumpFrame === 0) {
-      this.jumpFrame = 1;
+    // initialize jump
+    if (this.pressedJump && isOnStableGround) {
+      this.player.jumpVelocity = -7;
+      this.player.y += this.player.jumpVelocity;
     }
 
-    if (this.jumpFrame === 0 && !isOnStableGround) {
+    if (!isOnStableGround) {
       this.player.y++;
     }
 
@@ -163,6 +193,6 @@ export default class DanManager {
     this.roomManager.updateMonsterCollisions(
       this.player.getCurrentFrame(),
       time
-      );
+    );
   }
 }

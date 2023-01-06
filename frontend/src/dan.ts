@@ -4,6 +4,7 @@ import Positionable from "./positionable";
 export default class Dan extends Positionable {
   public x: number;
   public y: number;
+  public jumpVelocity = 0;
   public facingLeft: boolean;
   public frame: number;
   public rightFacingFrames: DrawSurface[];
