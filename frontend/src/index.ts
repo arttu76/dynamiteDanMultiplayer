@@ -24,6 +24,12 @@ resizer();
     if (event.key === "a") roomManager.moveLeft();
     if (event.key === "w") roomManager.moveUp();
     if (event.key === "s") roomManager.moveDown();
+
+    if(event.key ==="z") danManager.player.x--;
+    if(event.key ==="v") danManager.player.x++;
+    if(event.key ==="x") danManager.player.y--;
+    if(event.key ==="c") danManager.player.y++;
+
   });
 
   document.addEventListener("keydown", (event) => {
@@ -33,8 +39,9 @@ resizer();
   });
 
   setInterval(() => {
-    const time=Date.now();
+    const time = Date.now();
     roomManager.updateMonsters(time);
+    roomManager.updateTeleporter(time);
     danManager.update(time);
   }, 1000 / 25);
 })();

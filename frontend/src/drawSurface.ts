@@ -32,7 +32,7 @@ export default class DrawSurface extends Positionable {
 
   pixels: boolean[][];
   attribs: (ColorAttribute | null)[][];
-  blackIsTransparent: boolean;
+  noInkIsTransparent: boolean;
 
   public flippedHorizontally: boolean;
 
@@ -41,7 +41,7 @@ export default class DrawSurface extends Positionable {
     y: number,
     widthInPixels: number,
     heightInPixels: number,
-    blackIsTransparent: boolean,
+    noInkIsTransparent: boolean,
     color: ColorAttribute = null,
     pixelData: number[] = null,
     xAdjust: number = 0 // offset for drawing pixels
@@ -51,7 +51,7 @@ export default class DrawSurface extends Positionable {
     this.widthInPixels = widthInPixels;
     this.heightInPixels = heightInPixels;
 
-    this.blackIsTransparent = blackIsTransparent;
+    this.noInkIsTransparent = noInkIsTransparent;
 
     this.canvas = document.createElement("canvas");
     this.canvas.width = widthInPixels;
@@ -111,15 +111,16 @@ export default class DrawSurface extends Positionable {
     return this;
   }
 
-  plot(x: number, y: number, color: number, bright: boolean) {
+  plot(x: number, y: number, pixel: boolean, color: ColorAttribute) {
     this.canvasRenderingContext2D.fillStyle = (
-      bright ? brightColors : normalColors
-    )[color];
-    if (color !== 0 || !this.blackIsTransparent) {
+      color.bright ? brightColors : normalColors
+    )[pixel ? color.ink : color.paper];
+
+    if (pixel || !this.noInkIsTransparent) {
       this.canvasRenderingContext2D.fillRect(x, y, 1, 1);
     }
 
-    this.pixels[y][x] = color !== 0;
+    this.pixels[y][x] = pixel;
   }
 
   plotByte(x: number, y: number, byte: number, attribute: ColorAttribute) {
@@ -140,9 +141,9 @@ export default class DrawSurface extends Positionable {
       this.plot(
         x + offset,
         y,
-        byte & bit ? color.ink : color.paper,
-        color.bright
-      );
+        !!(byte & bit),
+        color
+    );
 
     plot(x, y, 128, 0);
     plot(x, y, 64, 1);
@@ -161,10 +162,8 @@ export default class DrawSurface extends Positionable {
         this.plot(
           attribX * 8 + x,
           attribY * 8 + y,
-          this.pixels[attribY * 8 + y][attribX * 8 + x]
-            ? color.ink
-            : color.paper,
-          color.bright
+          this.pixels[attribY * 8 + y][attribX * 8 + x],
+          color
         );
       }
     }

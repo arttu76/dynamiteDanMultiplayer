@@ -28,8 +28,7 @@ If you want to do a development build which automatically updates components whe
  - walking on trampolines
  - fix too few animation frames parsed from rom
  - backend socketjs integration
- - enemy collisions / dead enemies
- - teleporter
+ - teleporter functionality
  - elevator
  - lasers
  - rudimentary chat
