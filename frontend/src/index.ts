@@ -25,10 +25,10 @@ resizer();
     if (event.key === "w") roomManager.moveUp();
     if (event.key === "s") roomManager.moveDown();
 
-    if(event.key ==="z") danManager.player.x--;
-    if(event.key ==="v") danManager.player.x++;
-    if(event.key ==="x") danManager.player.y--;
-    if(event.key ==="c") danManager.player.y++;
+    if(event.key ==="z") danManager.player.x-=5;
+    if(event.key ==="v") danManager.player.x+=5;
+    if(event.key ==="x") danManager.player.y-=5;
+    if(event.key ==="c") danManager.player.y+=5;
 
   });
 

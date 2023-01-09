@@ -1,5 +1,5 @@
 import ColorAttribute from "./colorAttribute";
-import Positionable from "./positionable";
+import XY from "./xy";
 
 const normalColors = [
   "#000",
@@ -23,7 +23,7 @@ const brightColors = [
   "#FFF",
 ];
 
-export default class DrawSurface extends Positionable {
+export default class DrawSurface extends XY {
   widthInPixels: number;
   heightInPixels: number;
 
@@ -37,8 +37,7 @@ export default class DrawSurface extends Positionable {
   public flippedHorizontally: boolean;
 
   constructor(
-    x: number,
-    y: number,
+    position: XY,
     widthInPixels: number,
     heightInPixels: number,
     noInkIsTransparent: boolean,
@@ -46,7 +45,7 @@ export default class DrawSurface extends Positionable {
     pixelData: number[] = null,
     xAdjust: number = 0 // offset for drawing pixels
   ) {
-    super(x, y);
+    super(position.x, position.y);
 
     this.widthInPixels = widthInPixels;
     this.heightInPixels = heightInPixels;
@@ -79,8 +78,7 @@ export default class DrawSurface extends Positionable {
       for (let y = 0; y < heightInPixels; y++) {
         for (let x = 0; x < widthInPixels; x++) {
           this.plotByte(
-            x * 8 + xAdjust,
-            y,
+            new XY(x * 8 + xAdjust, y),
             pixelData[(widthInPixels / 8) * y + x],
             color
           );
@@ -111,67 +109,57 @@ export default class DrawSurface extends Positionable {
     return this;
   }
 
-  plot(x: number, y: number, pixel: boolean, color: ColorAttribute) {
+  plot(xy: XY, pixel: boolean, color: ColorAttribute) {
     this.canvasRenderingContext2D.fillStyle = (
       color.bright ? brightColors : normalColors
     )[pixel ? color.ink : color.paper];
 
     if (pixel || !this.noInkIsTransparent) {
-      this.canvasRenderingContext2D.fillRect(x, y, 1, 1);
+      this.canvasRenderingContext2D.fillRect(xy.x, xy.y, 1, 1);
     }
 
-    this.pixels[y][x] = pixel;
+    this.pixels[xy.y][xy.x] = pixel;
   }
 
-  plotByte(x: number, y: number, byte: number, attribute: ColorAttribute) {
-    const attribX = Math.floor(x / 8);
-    const attribY = Math.floor(y / 8);
+  plotByte(xy: XY, byte: number, attribute: ColorAttribute) {
+    const attribX = Math.floor(xy.x / 8);
+    const attribY = Math.floor(xy.y / 8);
 
-    const existingAttrib = this.attribs[attribY][attribX];
+    this.attribs[attribY][attribX] = attribute;
 
-    const color = new ColorAttribute(
-      (existingAttrib && existingAttrib.ink) || attribute.ink,
-      (existingAttrib && existingAttrib.paper) || attribute.paper,
-      (existingAttrib && existingAttrib.bright) || attribute.bright
-    );
-
-    this.attribs[attribY][attribX] = color;
-
-    const plot = (x: number, y: number, bit: number, offset: number) =>
+    const plot = (location: XY, bit: number, offset: number) =>
       this.plot(
-        x + offset,
-        y,
+        location.getOffset(offset, 0),
         !!(byte & bit),
-        color
+        attribute
     );
 
-    plot(x, y, 128, 0);
-    plot(x, y, 64, 1);
-    plot(x, y, 32, 2);
-    plot(x, y, 16, 3);
-    plot(x, y, 8, 4);
-    plot(x, y, 4, 5);
-    plot(x, y, 2, 6);
-    plot(x, y, 1, 7);
+    plot(xy, 128, 0);
+    plot(xy, 64, 1);
+    plot(xy, 32, 2);
+    plot(xy, 16, 3);
+    plot(xy, 8, 4);
+    plot(xy, 4, 5);
+    plot(xy, 2, 6);
+    plot(xy, 1, 7);
   }
 
-  setAttribute(attribX: number, attribY: number, color: ColorAttribute) {
-    this.attribs[attribY][attribX] = color;
+  setAttribute(attributeLocation: XY, color: ColorAttribute) {
+    this.attribs[attributeLocation.y][attributeLocation.x] = color;
     for (let y = 0; y < 8; y++) {
       for (let x = 0; x < 8; x++) {
         this.plot(
-          attribX * 8 + x,
-          attribY * 8 + y,
-          this.pixels[attribY * 8 + y][attribX * 8 + x],
+          new XY(attributeLocation.x * 8 + x, attributeLocation.y * 8 + y),
+          this.pixels[attributeLocation.y * 8 + y][attributeLocation.x * 8 + x],
           color
         );
       }
     }
   }
 
-  setPosition(x: number, y: number): DrawSurface {
-    this.x = x;
-    this.y = y;
+  setPosition(position: XY): DrawSurface {
+    this.x = position.x;
+    this.y = position.y;
 
     this.canvas.style.left = this.x + "px";
     this.canvas.style.top = this.y + "px";

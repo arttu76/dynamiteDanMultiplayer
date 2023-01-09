@@ -1,7 +1,7 @@
 import DrawSurface from "./drawSurface";
-import Positionable from "./positionable";
+import XY from "./xy";
 
-export default class Dan extends Positionable {
+export default class Dan extends XY {
   public x: number;
   public y: number;
   public jumpVelocity = 0;

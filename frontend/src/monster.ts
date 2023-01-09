@@ -1,5 +1,5 @@
 import DrawSurface from "./drawSurface";
-import Positionable from "./positionable";
+import XY from "./xy";
 
 enum MonsterState {
   Alive,
@@ -8,7 +8,7 @@ enum MonsterState {
   Resurrecting,
 }
 
-export default class Monster extends Positionable {
+export default class Monster extends XY {
   id: number;
   frames: DrawSurface[];
   initialDiffOffset: number;
@@ -103,7 +103,7 @@ export default class Monster extends Positionable {
 
     this.frames[this.currentFrame].hide();
     this.currentFrame = tick % this.frames.length;
-    this.frames[this.currentFrame].setPosition(this.x, this.y).show();
+    this.frames[this.currentFrame].setPosition(new XY(this.x, this.y)).show();
 
     this.frames.forEach((f) =>
       f.setStyle({ opacity: this.isDead(time) ? "0.125" : "1" })

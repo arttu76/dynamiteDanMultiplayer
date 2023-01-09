@@ -5,6 +5,7 @@ import ColorAttribute from "./colorAttribute";
 import * as ROM from "./rom";
 import { range, h, d, b } from "./util";
 import RoomManager from "./roomManager";
+import XY from "./xy";
 
 const danWidthInChars = 3;
 const danHeightInChars = 4;
@@ -31,8 +32,8 @@ export default class DanManager {
 
     const frames = this.parseDanFrames();
     this.player = new Dan(
-      70,
-      38, // 50 - danHeightDeficiencyInPixels,
+      210,
+      105,
       true,
       0,
       frames.rightFacingFrames,
@@ -56,8 +57,7 @@ export default class DanManager {
       range(4).map(
         (index) =>
           new DrawSurface(
-            0,
-            0,
+            new XY(0, 0),
             danWidthInChars * 8,
             danHeightInChars * 8,
             true,
@@ -77,13 +77,13 @@ export default class DanManager {
     const collidesWithRoom = (offsetX: number, offsetY: number) => {
       this.player
         .getCurrentFrame()
-        .setXY(this.player.x + offsetX, this.player.y + offsetY);
+        .setPosition(new XY(this.player.x + offsetX, this.player.y + offsetY));
       const collisionResult = this.player
         .getCurrentFrame()
         .isInCollisionWith(this.roomManager.getCurrentRoom());
       this.player
         .getCurrentFrame()
-        .setXY(this.player.x - offsetX, this.player.y - offsetY);
+        .setPosition(new XY(this.player.x - offsetX, this.player.y - offsetY));
       return collisionResult;
     };
 
@@ -148,7 +148,7 @@ export default class DanManager {
       }
       // didn't land, accelerate downwards
       if (!isOnStableGround) {
-        this.player.y += this.player.jumpVelocity;
+        // this.player.y += this.player.jumpVelocity;
       }
     }
 
@@ -159,12 +159,12 @@ export default class DanManager {
     }
 
     if (!isOnStableGround) {
-      this.player.y++;
+      // this.player.y++;
     }
 
     this.player
       .getCurrentFrame()
-      .setPosition(this.player.x, this.player.y)
+      .setPosition(new XY(this.player.x, this.player.y))
       .show();
 
     if (this.player.x < 0 - 4) {
@@ -194,5 +194,6 @@ export default class DanManager {
       this.player.getCurrentFrame(),
       time
     );
+    this.roomManager.teleportPlayerIfRequired(this.player);
   }
 }

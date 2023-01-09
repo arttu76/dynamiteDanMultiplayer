@@ -4,40 +4,43 @@ import ColorAttribute from "./colorAttribute";
 import * as ROM from "./rom";
 import { range, h, d, b } from "./util";
 import Monster from "./monster";
+import XY from "./xy";
+import Dan from "./dan";
 
 interface Teleporter {
-  roomX: number;
-  roomY: number;
-  teleporterXInChars: number;
-  teleporterYInChars: number;
-}
-
-interface ParsedRoom {
-  drawSurface: DrawSurface;
-  teleporter: Teleporter | null;
+  fromRoom: number;
+  positionInChars: XY;
+  toRoom: number;
+  toPixelLocation: XY;
 }
 
 const floors = 6;
 const roomsPerFloor = 8;
 
+const teleporterBeamWidthInChars = 4;
+const teleporterBeamHeightInChars = 4;
+
+const charsPerLine = 32;
+
 export default class RoomManager {
-  roomX: number;
-  roomY: number;
+  currentRoom: XY;
   rooms: DrawSurface[] = [];
   teleporters: Teleporter[] = [];
   monsters: Monster[][] = [];
+
+  teleporterActiveInThisFrame = false;
+  teleporterActiveInPreviousFrame = false;
 
   constructor() {
     range(roomsPerFloor * floors)
       .map((num) => this.initializeRoom(num))
       .forEach((roomAndMonsters, roomNumber) => {
-        this.rooms[roomNumber] = roomAndMonsters.room.drawSurface;
-        roomAndMonsters.room.teleporter &&
-          this.teleporters.push(roomAndMonsters.room.teleporter);
+        this.rooms[roomNumber] = roomAndMonsters.room;
         this.monsters[roomNumber] = roomAndMonsters.monsters;
       });
-    this.moveToRoom(3, 5);
+    this.teleporters = this.parseTeleportersFromRom();
 
+    this.moveToRoom(new XY(3, 5)); // original starting position: 3,5
     this.getCurrentMonsters().forEach((m) => m.show());
   }
 
@@ -50,45 +53,65 @@ export default class RoomManager {
   }
 
   moveRight(): void {
-    this.moveToRoom((8 + this.roomX - 1) % 8, this.roomY);
+    this.moveToRoom(
+      new XY((8 + this.currentRoom.x - 1) % 8, this.currentRoom.y)
+    );
   }
 
   moveLeft(): void {
-    this.moveToRoom((8 + this.roomX + 1) % 8, this.roomY);
+    this.moveToRoom(
+      new XY((8 + this.currentRoom.x + 1) % 8, this.currentRoom.y)
+    );
   }
 
   moveUp(): void {
-    this.moveToRoom(this.roomX, Math.min(5, this.roomY + 1));
+    this.moveToRoom(
+      new XY(this.currentRoom.x, Math.min(5, this.currentRoom.y + 1))
+    );
   }
 
   moveDown(): void {
-    this.moveToRoom(this.roomX, Math.max(0, this.roomY - 1));
+    this.moveToRoom(
+      new XY(this.currentRoom.x, Math.max(0, this.currentRoom.y - 1))
+    );
   }
 
   updateMonsters(time: number): void {
     this.getCurrentMonsters().forEach((m) => m.update(time));
   }
 
-  isTeleporterActive(time: number): boolean {
-    return time % 20000 < 5000;
+  getTeleporterForCurrentRoom(): Teleporter | null {
+    return (
+      this.teleporters.find((t) => t.fromRoom === this.getRoomIndex()) || null
+    );
   }
 
   updateTeleporter(time: number): void {
-    const teleporter = this.teleporters.find(
-      (t) => t.roomX === this.roomX && t.roomY === this.roomY
-    );
+    const teleporter = this.getTeleporterForCurrentRoom();
     if (!teleporter) {
+      this.teleporterActiveInPreviousFrame = false;
+      this.teleporterActiveInThisFrame = true;
       return;
     }
 
-    if (!this.isTeleporterActive(time)) {
-      for (let x = 0; x < 4; x++) {
-        for (let y = 0; y < 5; y++) {
-          this.getCurrentRoom().setAttribute(
-            teleporter.teleporterXInChars + x,
-            teleporter.teleporterYInChars + y,
-            new ColorAttribute(7, 0, false)
-          );
+    this.teleporterActiveInPreviousFrame = this.teleporterActiveInThisFrame;
+    this.teleporterActiveInThisFrame = time % 20000 < 5000;
+
+    if (!this.teleporterActiveInThisFrame) {
+      for (let x = 0; x < teleporterBeamWidthInChars; x++) {
+        // teleporter "emitters"
+        this.getCurrentRoom().setAttribute(
+          teleporter.positionInChars.getOffset(x, 0),
+          new ColorAttribute(((Math.round(time / 75) + x) % 7) + 1, 0, false)
+        );
+
+        if (this.teleporterActiveInPreviousFrame) {
+          for (let y = 0; y < teleporterBeamHeightInChars; y++) {
+            this.getCurrentRoom().setAttribute(
+              teleporter.positionInChars.getOffset(x, y + 1),
+              new ColorAttribute(7, 0, false)
+            );
+          }
         }
       }
       return;
@@ -96,26 +119,47 @@ export default class RoomManager {
 
     const color = new ColorAttribute(0, (Math.round(time / 25) % 7) + 1, false);
 
-    for (let x = 0; x < 4; x++) {
+    for (let x = 0; x < teleporterBeamWidthInChars; x++) {
       // teleporter "emitters"
       this.getCurrentRoom().setAttribute(
-        teleporter.teleporterXInChars + x,
-        teleporter.teleporterYInChars,
+        teleporter.positionInChars.getOffset(x, 0),
         new ColorAttribute(
-          ((Math.round(time / 50) + (4 - x)) % 7) + 1,
+          ((Math.round(time / 75) + (4 - x)) % 7) + 1,
           0,
           false
         )
       );
 
       // teleporter "air"
-      for (let y = 0; y < 4; y++) {
+      for (let y = 0; y < teleporterBeamHeightInChars; y++) {
         this.getCurrentRoom().setAttribute(
-          teleporter.teleporterXInChars + x,
-          teleporter.teleporterYInChars + y + 1,
+          teleporter.positionInChars.getOffset(x, y + 1),
           color
         );
       }
+    }
+  }
+
+  teleportPlayerIfRequired(player: Dan): void {
+    const teleporter = this.getTeleporterForCurrentRoom();
+
+    if (
+      !teleporter ||
+      this.teleporterActiveInThisFrame ||
+      !this.teleporterActiveInPreviousFrame
+    ) {
+      return;
+    }
+
+    if (
+      player.x > teleporter.positionInChars.x * 8 &&
+      player.x < teleporter.positionInChars.x * 8 + 20 &&
+      player.y > teleporter.positionInChars.y * 8 + 6 &&
+      player.y < teleporter.positionInChars.y * 8 + 15
+    ) {
+      this.moveToRoom(this.getRoomXY(teleporter.toRoom));
+      player.x = teleporter.toPixelLocation.x;
+      player.y = teleporter.toPixelLocation.y;
     }
   }
 
@@ -127,23 +171,30 @@ export default class RoomManager {
   }
 
   private getRoomIndex() {
-    return this.roomX + this.roomY * 8;
+    return this.currentRoom.x + this.currentRoom.y * roomsPerFloor;
   }
 
-  private moveToRoom(newX: number, newY: number) {
-    this.getCurrentRoom()?.detachFromHtml();
-    this.getCurrentMonsters()?.length &&
+  private getRoomXY(roomIndex: number) {
+    return new XY(
+      roomIndex % roomsPerFloor,
+      Math.floor(roomIndex / roomsPerFloor)
+    );
+  }
+
+  private moveToRoom(roomXy: XY) {
+    if (this.currentRoom) {
+      this.getCurrentRoom().detachFromHtml();
       this.getCurrentMonsters().forEach((m) => m.hide());
-    this.roomX = newX;
-    this.roomY = newY;
-    this.getCurrentRoom().attachToHtml().setStyle({ "zIndex": "0" }).show();
+    }
+    this.currentRoom = roomXy;
+    this.getCurrentRoom().attachToHtml().setStyle({ "z-index": "0" }).show();
     this.getCurrentMonsters().forEach((m) => m.show());
 
     console.log(
       "Moved to room x:" +
-        this.roomX +
+        this.currentRoom.x +
         " y:" +
-        this.roomY +
+        this.currentRoom.y +
         " number " +
         this.getRoomIndex()
     );
@@ -157,7 +208,7 @@ export default class RoomManager {
   }
 
   private initializeRoom(roomNumber: number): {
-    room: ParsedRoom;
+    room: DrawSurface;
     monsters: Monster[];
   } {
     return {
@@ -166,12 +217,10 @@ export default class RoomManager {
     };
   }
 
-  private parseRoomFromRom(roomNumber: number): ParsedRoom {
+  private parseRoomFromRom(roomNumber: number): DrawSurface {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
-    const ds = new DrawSurface(0, 0, 256, 192, false);
-
-    let teleporter: Teleporter = null;
+    const ds = new DrawSurface(new XY(0, 0), 256, 192, false);
 
     do {
       const y = ROM.peek(udgPointer++);
@@ -183,17 +232,18 @@ export default class RoomManager {
         const skip = ROM.peek(udgPointer++);
         const repeat = ROM.peek(udgPointer++);
 
-        const xDir = direction === 254 ? 1 : direction === 251 ? -1 : 0;
-        const yDir = direction === 253 ? -1 : direction === 252 ? 1 : 0;
-
-        if (id === 159 && !teleporter) {
-          teleporter = {
-            roomX: roomNumber % roomsPerFloor,
-            roomY: (roomNumber - (roomNumber % roomsPerFloor)) / roomsPerFloor,
-            teleporterXInChars: x,
-            teleporterYInChars: y,
-          };
-        }
+        let xDir =
+          direction === 254
+            ? 1
+            : direction === 252 || direction === 251
+            ? 1
+            : 0;
+        let yDir =
+          direction === 253 || direction === 251
+            ? -1
+            : direction === 252
+            ? 1
+            : 0;
 
         let curX = x;
         let curY = y;
@@ -207,10 +257,7 @@ export default class RoomManager {
       }
     } while (ROM.peek(udgPointer) !== 255);
 
-    return {
-      drawSurface: ds,
-      teleporter,
-    };
+    return ds;
   }
 
   private drawUdg(surface: DrawSurface, x: number, y: number, udgId: number) {
@@ -233,8 +280,7 @@ export default class RoomManager {
       for (var udgY = 0; udgY < 8; udgY++) {
         for (var udgX = 0; udgX < width; udgX++) {
           surface.plotByte(
-            x * 8 + udgX * 8,
-            y * 8 + row * -8 + udgY,
+            new XY(x * 8 + udgX * 8, y * 8 + row * -8 + udgY),
             ROM.peek(udgPointer + udgX + row * width * 8 + udgY * width),
             // use this color to show collision bitmap data
             // new ColorAttribute(2)
@@ -317,8 +363,7 @@ export default class RoomManager {
         const frames = range(maxFrames).map(
           (frameIndex) =>
             new DrawSurface(
-              xCoordinate,
-              yCoordinate,
+              new XY(xCoordinate, yCoordinate),
               spriteWidthInChars * 8,
               spriteHeightInChars * 8,
               true,
@@ -350,5 +395,31 @@ export default class RoomManager {
       ...parseVerticalOrHorizontal(true, horizontal1Id, horizontal1Amount),
       ...parseVerticalOrHorizontal(true, horizontal2Id, horizontal2Amount),
     ].map((monster, idx) => monster.setId(roomNumber * 100 + idx));
+  }
+
+  parseTeleportersFromRom(): Teleporter[] {
+    return range(10).map((index) => {
+      let teleporterPointer = d("EDBC") + index * 6; // each teleporter is 6 bytes
+
+      const fromRoom = ROM.peek(teleporterPointer++);
+      const attributePosition =
+        ROM.peek(teleporterPointer++) +
+        ROM.peek(teleporterPointer++) * 256 -
+        parseInt("58", 16) * 256; // start of attribute ram
+      const teleporterXInChars = attributePosition % charsPerLine;
+
+      return {
+        fromRoom: fromRoom,
+        positionInChars: new XY(
+          teleporterXInChars,
+          (attributePosition - teleporterXInChars) / charsPerLine
+        ),
+        toRoom: ROM.peek(teleporterPointer++),
+        toPixelLocation: new XY(
+          ROM.peek(teleporterPointer + 1) * 8,
+          ROM.peek(teleporterPointer)
+        ),
+      };
+    });
   }
 }
