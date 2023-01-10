@@ -4,8 +4,10 @@ import ColorAttribute from "./colorAttribute";
 
 import * as ROM from "./rom";
 import { range, h, d, b } from "./util";
-import RoomManager from "./roomManager";
 import XY from "./xy";
+import RoomManager from "./roomManager";
+import TeleporterManager from "./teleportManager";
+import ElevatorManager from "./elevatorManager";
 
 const danWidthInChars = 3;
 const danHeightInChars = 4;
@@ -20,20 +22,22 @@ export default class DanManager {
   player: Dan;
   others: Dan[];
 
-  roomManager: RoomManager;
-
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
   public pressedJump: boolean = false;
 
-  constructor(roomManager: RoomManager) {
+  constructor(
+    initialDanPosition: XY,
+    private roomManager: RoomManager,
+    private teleporterManager: TeleporterManager,
+    private elevatorManager: ElevatorManager
+  ) {
     this.roomManager = roomManager;
     this.others = [];
 
     const frames = this.parseDanFrames();
     this.player = new Dan(
-      210,
-      105,
+      initialDanPosition,
       true,
       0,
       frames.rightFacingFrames,
@@ -73,7 +77,7 @@ export default class DanManager {
     };
   }
 
-  private updatePlayer(): void {
+  private updatePlayer(time: number): void {
     const collidesWithRoom = (offsetX: number, offsetY: number) => {
       this.player
         .getCurrentFrame()
@@ -90,6 +94,30 @@ export default class DanManager {
     this.player.getCurrentFrame().hide();
 
     let isOnStableGround = collidesWithRoom(0, 1);
+
+    if (!isOnStableGround) {
+      const elevatorY = this.elevatorManager.getElevatorInCurrentRoomY(time);
+
+      if (elevatorY && this.player.x > 119 && this.player.x < 134) {
+        const elevatorDiff =
+          this.player.y +
+          danHeightInChars * 8 -
+          danHeightDeficiencyInPixels -
+          elevatorY;
+        if (Math.abs(elevatorDiff) < 4) {
+          this.player.y = elevatorY - danHeightInChars * 8 + 6;
+          isOnStableGround = true;
+          this.player.jumpVelocity = 0;
+          if (this.player.y < 1) {
+            this.player.y = -15;
+          }
+        }
+      }
+    }
+
+    if (isOnStableGround) {
+      this.player.jumpVelocity = 0;
+    }
 
     if (this.pressedLeft && !this.pressedRight) {
       let walkedLeft = false;
@@ -126,7 +154,7 @@ export default class DanManager {
       }
     }
 
-    this.player.jumpVelocity = Math.min(50, this.player.jumpVelocity + 1);
+    this.player.jumpVelocity = Math.min(1, this.player.jumpVelocity + 1);
 
     // going upwards and hit head?
     if (
@@ -148,7 +176,7 @@ export default class DanManager {
       }
       // didn't land, accelerate downwards
       if (!isOnStableGround) {
-        // this.player.y += this.player.jumpVelocity;
+        this.player.y += this.player.jumpVelocity;
       }
     }
 
@@ -159,7 +187,7 @@ export default class DanManager {
     }
 
     if (!isOnStableGround) {
-      // this.player.y++;
+      this.player.y++;
     }
 
     this.player
@@ -175,13 +203,16 @@ export default class DanManager {
       this.player.x = 0;
       this.roomManager.moveRight();
     }
+    if (
+      this.player.y >
+      192 - danHeightInChars * 8 - 4 * 8 + danHeightDeficiencyInPixels
+    ) {
+      this.player.y = 0;
+      this.roomManager.moveDown();
+    }
     if (this.player.y < 0) {
       this.player.y = 192 - danHeightInChars * 8;
       this.roomManager.moveUp();
-    }
-    if (this.player.y > 192 - danHeightInChars * 8) {
-      this.player.y = 0;
-      this.roomManager.moveDown();
     }
   }
 
@@ -189,11 +220,11 @@ export default class DanManager {
 
   update(time: number): void {
     this.updateOthers();
-    this.updatePlayer();
+    this.updatePlayer(time);
     this.roomManager.updateMonsterCollisions(
       this.player.getCurrentFrame(),
       time
     );
-    this.roomManager.teleportPlayerIfRequired(this.player);
+    this.teleporterManager.teleportPlayerIfRequired(this.player);
   }
 }

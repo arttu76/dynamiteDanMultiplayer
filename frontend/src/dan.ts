@@ -11,14 +11,13 @@ export default class Dan extends XY {
   public leftFacingFrames: DrawSurface[];
 
   public constructor(
-    x: number,
-    y: number,
+    position: XY,
     facingLeft: boolean,
     frame: number,
     rightFacingFrames: DrawSurface[],
     leftFacingFrames: DrawSurface[]
   ) {
-    super(x, y);
+    super(position.x, position.y);
     this.facingLeft = facingLeft;
     this.frame = frame;
     this.leftFacingFrames = leftFacingFrames;

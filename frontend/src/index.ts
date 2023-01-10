@@ -1,7 +1,10 @@
 import "../resources/index.css";
 
 import RoomManager from "./roomManager";
+import TeleporterManager from "./teleportManager";
+import ElevatorManager from "./elevatorManager";
 import DanManager from "./danManager";
+import XY from "./xy";
 
 const resizer = () =>
   ((document.querySelector("#container") as HTMLElement).style.transform =
@@ -12,8 +15,16 @@ addEventListener("resize", resizer);
 resizer();
 
 (async function () {
-  const roomManager = new RoomManager();
-  const danManager = new DanManager(roomManager);
+  const roomManager = new RoomManager(new XY(5, 5));
+  const teleporterManager = new TeleporterManager(roomManager);
+  const elevatorManager = new ElevatorManager(roomManager);
+
+  const danManager = new DanManager(
+    new XY(112, 32),
+    roomManager,
+    teleporterManager,
+    elevatorManager
+  );
 
   document.addEventListener("keyup", (event) => {
     if (event.key === "ArrowUp") danManager.pressedJump = false;
@@ -25,11 +36,10 @@ resizer();
     if (event.key === "w") roomManager.moveUp();
     if (event.key === "s") roomManager.moveDown();
 
-    if(event.key ==="z") danManager.player.x-=5;
-    if(event.key ==="v") danManager.player.x+=5;
-    if(event.key ==="x") danManager.player.y-=5;
-    if(event.key ==="c") danManager.player.y+=5;
-
+    if (event.key === "z") danManager.player.x -= 5;
+    if (event.key === "v") danManager.player.x += 5;
+    if (event.key === "x") danManager.player.y -= 5;
+    if (event.key === "c") danManager.player.y += 5;
   });
 
   document.addEventListener("keydown", (event) => {
@@ -41,7 +51,8 @@ resizer();
   setInterval(() => {
     const time = Date.now();
     roomManager.updateMonsters(time);
-    roomManager.updateTeleporter(time);
+    teleporterManager.updateTeleporter(time);
+    elevatorManager.updateElevator(time);
     danManager.update(time);
   }, 1000 / 25);
 })();

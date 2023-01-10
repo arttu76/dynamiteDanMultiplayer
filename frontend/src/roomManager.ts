@@ -5,42 +5,24 @@ import * as ROM from "./rom";
 import { range, h, d, b } from "./util";
 import Monster from "./monster";
 import XY from "./xy";
-import Dan from "./dan";
-
-interface Teleporter {
-  fromRoom: number;
-  positionInChars: XY;
-  toRoom: number;
-  toPixelLocation: XY;
-}
 
 const floors = 6;
 const roomsPerFloor = 8;
 
-const teleporterBeamWidthInChars = 4;
-const teleporterBeamHeightInChars = 4;
-
-const charsPerLine = 32;
-
 export default class RoomManager {
   currentRoom: XY;
   rooms: DrawSurface[] = [];
-  teleporters: Teleporter[] = [];
   monsters: Monster[][] = [];
 
-  teleporterActiveInThisFrame = false;
-  teleporterActiveInPreviousFrame = false;
-
-  constructor() {
+  constructor(initialRoom: XY) {
     range(roomsPerFloor * floors)
       .map((num) => this.initializeRoom(num))
       .forEach((roomAndMonsters, roomNumber) => {
         this.rooms[roomNumber] = roomAndMonsters.room;
         this.monsters[roomNumber] = roomAndMonsters.monsters;
       });
-    this.teleporters = this.parseTeleportersFromRom();
 
-    this.moveToRoom(new XY(3, 5)); // original starting position: 3,5
+    this.moveToRoom(initialRoom); // original starting position: 3,5
     this.getCurrentMonsters().forEach((m) => m.show());
   }
 
@@ -80,89 +62,6 @@ export default class RoomManager {
     this.getCurrentMonsters().forEach((m) => m.update(time));
   }
 
-  getTeleporterForCurrentRoom(): Teleporter | null {
-    return (
-      this.teleporters.find((t) => t.fromRoom === this.getRoomIndex()) || null
-    );
-  }
-
-  updateTeleporter(time: number): void {
-    const teleporter = this.getTeleporterForCurrentRoom();
-    if (!teleporter) {
-      this.teleporterActiveInPreviousFrame = false;
-      this.teleporterActiveInThisFrame = true;
-      return;
-    }
-
-    this.teleporterActiveInPreviousFrame = this.teleporterActiveInThisFrame;
-    this.teleporterActiveInThisFrame = time % 20000 < 5000;
-
-    if (!this.teleporterActiveInThisFrame) {
-      for (let x = 0; x < teleporterBeamWidthInChars; x++) {
-        // teleporter "emitters"
-        this.getCurrentRoom().setAttribute(
-          teleporter.positionInChars.getOffset(x, 0),
-          new ColorAttribute(((Math.round(time / 75) + x) % 7) + 1, 0, false)
-        );
-
-        if (this.teleporterActiveInPreviousFrame) {
-          for (let y = 0; y < teleporterBeamHeightInChars; y++) {
-            this.getCurrentRoom().setAttribute(
-              teleporter.positionInChars.getOffset(x, y + 1),
-              new ColorAttribute(7, 0, false)
-            );
-          }
-        }
-      }
-      return;
-    }
-
-    const color = new ColorAttribute(0, (Math.round(time / 25) % 7) + 1, false);
-
-    for (let x = 0; x < teleporterBeamWidthInChars; x++) {
-      // teleporter "emitters"
-      this.getCurrentRoom().setAttribute(
-        teleporter.positionInChars.getOffset(x, 0),
-        new ColorAttribute(
-          ((Math.round(time / 75) + (4 - x)) % 7) + 1,
-          0,
-          false
-        )
-      );
-
-      // teleporter "air"
-      for (let y = 0; y < teleporterBeamHeightInChars; y++) {
-        this.getCurrentRoom().setAttribute(
-          teleporter.positionInChars.getOffset(x, y + 1),
-          color
-        );
-      }
-    }
-  }
-
-  teleportPlayerIfRequired(player: Dan): void {
-    const teleporter = this.getTeleporterForCurrentRoom();
-
-    if (
-      !teleporter ||
-      this.teleporterActiveInThisFrame ||
-      !this.teleporterActiveInPreviousFrame
-    ) {
-      return;
-    }
-
-    if (
-      player.x > teleporter.positionInChars.x * 8 &&
-      player.x < teleporter.positionInChars.x * 8 + 20 &&
-      player.y > teleporter.positionInChars.y * 8 + 6 &&
-      player.y < teleporter.positionInChars.y * 8 + 15
-    ) {
-      this.moveToRoom(this.getRoomXY(teleporter.toRoom));
-      player.x = teleporter.toPixelLocation.x;
-      player.y = teleporter.toPixelLocation.y;
-    }
-  }
-
   updateMonsterCollisions(player: DrawSurface, time: number): void {
     this.getCurrentMonsters()
       .filter((m) => !m.isDead(time))
@@ -170,18 +69,20 @@ export default class RoomManager {
       .forEach((m) => (m.diedAt = time));
   }
 
-  private getRoomIndex() {
-    return this.currentRoom.x + this.currentRoom.y * roomsPerFloor;
+  public getRoomIndex(forXY?: XY) {
+    return forXY
+    ? forXY.x + forXY.y * roomsPerFloor
+    : this.currentRoom.x + this.currentRoom.y * roomsPerFloor;
   }
 
-  private getRoomXY(roomIndex: number) {
+  public getRoomXY(roomIndex: number) {
     return new XY(
       roomIndex % roomsPerFloor,
       Math.floor(roomIndex / roomsPerFloor)
     );
   }
 
-  private moveToRoom(roomXy: XY) {
+  moveToRoom(roomXy: XY) {
     if (this.currentRoom) {
       this.getCurrentRoom().detachFromHtml();
       this.getCurrentMonsters().forEach((m) => m.hide());
@@ -395,31 +296,5 @@ export default class RoomManager {
       ...parseVerticalOrHorizontal(true, horizontal1Id, horizontal1Amount),
       ...parseVerticalOrHorizontal(true, horizontal2Id, horizontal2Amount),
     ].map((monster, idx) => monster.setId(roomNumber * 100 + idx));
-  }
-
-  parseTeleportersFromRom(): Teleporter[] {
-    return range(10).map((index) => {
-      let teleporterPointer = d("EDBC") + index * 6; // each teleporter is 6 bytes
-
-      const fromRoom = ROM.peek(teleporterPointer++);
-      const attributePosition =
-        ROM.peek(teleporterPointer++) +
-        ROM.peek(teleporterPointer++) * 256 -
-        parseInt("58", 16) * 256; // start of attribute ram
-      const teleporterXInChars = attributePosition % charsPerLine;
-
-      return {
-        fromRoom: fromRoom,
-        positionInChars: new XY(
-          teleporterXInChars,
-          (attributePosition - teleporterXInChars) / charsPerLine
-        ),
-        toRoom: ROM.peek(teleporterPointer++),
-        toPixelLocation: new XY(
-          ROM.peek(teleporterPointer + 1) * 8,
-          ROM.peek(teleporterPointer)
-        ),
-      };
-    });
   }
 }

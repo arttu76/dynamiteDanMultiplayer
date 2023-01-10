@@ -87,6 +87,7 @@ export default class DrawSurface extends XY {
     }
 
     this.attachToHtml().hide();
+    this.setPosition(position);
   }
 
   show(): DrawSurface {
