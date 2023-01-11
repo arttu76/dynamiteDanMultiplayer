@@ -4,7 +4,10 @@ import XY from "./xy";
 export default class Dan extends XY {
   public x: number;
   public y: number;
-  public jumpVelocity = 0;
+
+  public jumpFrame = 0;
+  public jumpMaxHeight = 24;
+  
   public facingLeft: boolean;
   public frame: number;
   public rightFacingFrames: DrawSurface[];

@@ -65,6 +65,7 @@ export default class DanManager {
             danWidthInChars * 8,
             danHeightInChars * 8,
             true,
+            false,
             danColor,
             ROM.copy(d(offsetHex) + danDataSize * index, danDataSize),
             pixelOffsets[index] // pixel data for dan is not left-aligned
@@ -93,30 +94,12 @@ export default class DanManager {
 
     this.player.getCurrentFrame().hide();
 
-    let isOnStableGround = collidesWithRoom(0, 1);
-
-    if (!isOnStableGround) {
-      const elevatorY = this.elevatorManager.getElevatorInCurrentRoomY(time);
-
-      if (elevatorY && this.player.x > 119 && this.player.x < 134) {
-        const elevatorDiff =
-          this.player.y +
-          danHeightInChars * 8 -
-          danHeightDeficiencyInPixels -
-          elevatorY;
-        if (Math.abs(elevatorDiff) < 4) {
-          this.player.y = elevatorY - danHeightInChars * 8 + 6;
-          isOnStableGround = true;
-          this.player.jumpVelocity = 0;
-          if (this.player.y < 1) {
-            this.player.y = -15;
-          }
-        }
-      }
-    }
-
-    if (isOnStableGround) {
-      this.player.jumpVelocity = 0;
+    // extra check for elevator
+    if(
+      collidesWithRoom(0, 0) // elevator floor moving up "digs into" players' feet
+      && !collidesWithRoom(0, -1) // player would be okay if it was on the elevator
+    ) {
+      this.player.y--;
     }
 
     if (this.pressedLeft && !this.pressedRight) {
@@ -154,40 +137,29 @@ export default class DanManager {
       }
     }
 
-    this.player.jumpVelocity = Math.min(1, this.player.jumpVelocity + 1);
-
-    // going upwards and hit head?
-    if (
-      !isOnStableGround &&
-      this.player.jumpVelocity < 0 &&
-      collidesWithRoom(0, this.player.jumpVelocity)
-    ) {
-      this.player.jumpVelocity = 1;
-    }
-
-    // landed?
-    if (!isOnStableGround) {
-      for (let y = 0; y < this.player.jumpVelocity + 1; y++) {
-        if (collidesWithRoom(0, y)) {
-          this.player.y += y - 1;
-          isOnStableGround = true;
-          break;
-        }
-      }
-      // didn't land, accelerate downwards
-      if (!isOnStableGround) {
-        this.player.y += this.player.jumpVelocity;
-      }
-    }
+    let isOnStableGround = collidesWithRoom(0, 1);
 
     // initialize jump
-    if (this.pressedJump && isOnStableGround) {
-      this.player.jumpVelocity = -7;
-      this.player.y += this.player.jumpVelocity;
+    if(this.pressedJump && isOnStableGround) {
+      this.player.jumpFrame = 1;
+      this.player.jumpMaxHeight = 26;
     }
 
-    if (!isOnStableGround) {
-      this.player.y++;
+    // if ...
+    if(
+      this.player.jumpFrame // ... jumping ...
+      && this.player.jumpFrame < this.player.jumpMaxHeight // ... and we can go up
+      && !collidesWithRoom(0, -1) // ... and there is room
+    ) {
+      // ... then move up ...
+      this.player.jumpFrame++;
+      this.player.y--;
+    } else {
+      // ... but otherwise fall down
+      if(!isOnStableGround && !collidesWithRoom(0, 1)) {
+        this.player.jumpFrame = 0;
+        this.player.y++;
+      }
     }
 
     this.player
@@ -211,7 +183,7 @@ export default class DanManager {
       this.roomManager.moveDown();
     }
     if (this.player.y < 0) {
-      this.player.y = 192 - danHeightInChars * 8;
+      this.player.y = 8*19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;
       this.roomManager.moveUp();
     }
   }

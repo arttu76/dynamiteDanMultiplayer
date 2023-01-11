@@ -4,7 +4,6 @@ import RoomManager from "./roomManager";
 import DrawSurface from "./drawSurface";
 import XY from "./xy";
 import { range, repeat } from "./util";
-import { Manager } from "socket.io-client";
 
 const roomHeightInChars = 20;
 const roomPreviewInChars = 3; // each room shows this many chars from the room above it
@@ -20,6 +19,7 @@ export default class ElevatorManager {
       3 * 8,
       8,
       true,
+      false,
       new ColorAttribute(5, 1, false),
       [
         0b01100110, 0b01100110, 0b01100110, 0b01111111, 0b11111111, 0b11111110,
@@ -31,7 +31,7 @@ export default class ElevatorManager {
 
     const elevatorRoute = [
       ...elevatorStops,
-      ...elevatorStops.slice().reverse(),
+      ...elevatorStops.slice(0, -1).reverse(),
     ].map((val) => val * 8);
 
     this.elevatorPositions = elevatorRoute
@@ -39,7 +39,6 @@ export default class ElevatorManager {
         from: elevatorRoute[idx],
         to: elevatorRoute[(idx + 1) % elevatorRoute.length],
       }))
-      .filter((val) => val.from !== val.to)
       .map((stop) => [
         stop.to > stop.from
           ? range(stop.to - stop.from).map((val) => val + stop.from)
@@ -54,15 +53,26 @@ export default class ElevatorManager {
     this.elevator.attachToHtml();
   }
 
-  getElevatorInCurrentRoomY(time: number): number | null {
-    const roomXy = this.roomManager.getRoomXY(this.roomManager.getRoomIndex());
+  isPlayerCurrently(): {
+    inTopmostElevatorRoom: boolean;
+    inAnyRoomWithElevatorShaft: boolean;
+  } {
+    const xy = this.roomManager.getRoomXY(this.roomManager.getRoomIndex());
+    const inAnyRoomWithElevatorShaft = xy.x === 5;
+    return {
+      inTopmostElevatorRoom: inAnyRoomWithElevatorShaft && xy.y === 5,
+      inAnyRoomWithElevatorShaft,
+    };
+  }
 
-    // not at elevator shaft
-    if (roomXy.x !== 5) {
+  getElevatorInCurrentRoomY(time: number): number | null {
+    if (!this.isPlayerCurrently().inAnyRoomWithElevatorShaft) {
       return null;
     }
 
-    const y =
+    const roomXy = this.roomManager.getRoomXY(this.roomManager.getRoomIndex());
+
+    const elevatorGlobalY =
       this.elevatorPositions[
         Math.round(time / 50) % this.elevatorPositions.length
       ];
@@ -73,15 +83,41 @@ export default class ElevatorManager {
       (roomHeightInChars - roomPreviewInChars) * roomYFromTop * 8;
     const roomYMax = roomYMin + roomHeightInChars * 8;
 
-    return y >= roomYMin && y <= roomYMax ? y - roomYMin : null;
+    return elevatorGlobalY >= roomYMin && elevatorGlobalY <= roomYMax
+      ? elevatorGlobalY - roomYMin
+      : null;
   }
 
   updateElevator(time: number): void {
-    const y = this.getElevatorInCurrentRoomY(time);
-    if (y === null) {
+    const isPlayer = this.isPlayerCurrently();
+
+    if (!isPlayer.inAnyRoomWithElevatorShaft) {
+      return;
+    }
+
+    // topmost elevator room matters because of the elevator roof
+    this.roomManager
+      .getCurrentRoom()
+      .updateCustomCollisionMap(
+        new XY(15 * 8, isPlayer.inTopmostElevatorRoom ? 2 * 8 : 0),
+        3 * 8,
+        20 * 8 - (isPlayer.inTopmostElevatorRoom ? 2 * 8 : 0),
+        false
+      );
+
+    const elevatorLocalY = this.getElevatorInCurrentRoomY(time);
+    if (elevatorLocalY === null) {
       this.elevator.hide();
     } else {
-      this.elevator.setPosition(new XY(8 * 15, y)).show();
+      this.elevator.setPosition(new XY(8 * 15, elevatorLocalY)).show();
+      this.roomManager
+        .getCurrentRoom()
+        .updateCustomCollisionMap(
+          new XY(15 * 8, elevatorLocalY),
+          3 * 8,
+          2,
+          true
+        );
     }
   }
 }

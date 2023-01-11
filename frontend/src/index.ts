@@ -15,12 +15,12 @@ addEventListener("resize", resizer);
 resizer();
 
 (async function () {
-  const roomManager = new RoomManager(new XY(5, 5));
+  const roomManager = new RoomManager(new XY(3, 5));
   const teleporterManager = new TeleporterManager(roomManager);
   const elevatorManager = new ElevatorManager(roomManager);
 
   const danManager = new DanManager(
-    new XY(112, 32),
+    new XY(75, 32),
     roomManager,
     teleporterManager,
     elevatorManager

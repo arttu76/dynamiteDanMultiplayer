@@ -121,7 +121,7 @@ export default class RoomManager {
   private parseRoomFromRom(roomNumber: number): DrawSurface {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
-    const ds = new DrawSurface(new XY(0, 0), 256, 192, false);
+    const ds = new DrawSurface(new XY(0, 0), 256, 192, false, true);
 
     do {
       const y = ROM.peek(udgPointer++);
@@ -185,7 +185,8 @@ export default class RoomManager {
             ROM.peek(udgPointer + udgX + row * width * 8 + udgY * width),
             // use this color to show collision bitmap data
             // new ColorAttribute(2)
-            new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width])
+            new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
+            0b11111111
           );
         }
       }
@@ -268,6 +269,7 @@ export default class RoomManager {
               spriteWidthInChars * 8,
               spriteHeightInChars * 8,
               true,
+              false,
               color,
               ROM.copy(
                 spriteDataLocation + spriteDataSize * frameIndex,

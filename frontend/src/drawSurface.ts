@@ -33,6 +33,7 @@ export default class DrawSurface extends XY {
   pixels: boolean[][];
   attribs: (ColorAttribute | null)[][];
   noInkIsTransparent: boolean;
+  customCollisionMap: boolean[][] | null;
 
   public flippedHorizontally: boolean;
 
@@ -41,9 +42,10 @@ export default class DrawSurface extends XY {
     widthInPixels: number,
     heightInPixels: number,
     noInkIsTransparent: boolean,
+    customCollisionMap: boolean,
     color: ColorAttribute = null,
     pixelData: number[] = null,
-    xAdjust: number = 0 // offset for drawing pixels
+    xPixelOffset: number = 0
   ) {
     super(position.x, position.y);
 
@@ -59,13 +61,14 @@ export default class DrawSurface extends XY {
     this.canvas.style.width = widthInPixels + "px";
     this.canvas.style.height = heightInPixels + "px";
 
-    const initAttrib = <T>(divider: number, init: T): T[][] =>
-      new Array(heightInPixels / divider)
+    const initAttrib = <T>(itemSize: number, init: T): T[][] =>
+      new Array(heightInPixels / itemSize)
         .fill(-1)
-        .map(() => new Array(widthInPixels / divider).fill(init));
+        .map(() => new Array(widthInPixels / itemSize).fill(init));
 
     this.pixels = initAttrib(1, false);
     this.attribs = initAttrib(8, null);
+    this.customCollisionMap = customCollisionMap ? initAttrib(1, false) : null;
 
     this.canvasRenderingContext2D = this.canvas.getContext("2d", {
       alpha: true,
@@ -78,7 +81,7 @@ export default class DrawSurface extends XY {
       for (let y = 0; y < heightInPixels; y++) {
         for (let x = 0; x < widthInPixels; x++) {
           this.plotByte(
-            new XY(x * 8 + xAdjust, y),
+            new XY(x * 8 + xPixelOffset, y),
             pixelData[(widthInPixels / 8) * y + x],
             color
           );
@@ -110,7 +113,12 @@ export default class DrawSurface extends XY {
     return this;
   }
 
-  plot(xy: XY, pixel: boolean, color: ColorAttribute) {
+  plot(
+    xy: XY,
+    pixel: boolean,
+    color: ColorAttribute,
+    customCollisionPixel = false
+  ) {
     this.canvasRenderingContext2D.fillStyle = (
       color.bright ? brightColors : normalColors
     )[pixel ? color.ink : color.paper];
@@ -120,29 +128,39 @@ export default class DrawSurface extends XY {
     }
 
     this.pixels[xy.y][xy.x] = pixel;
+
+    if (this.customCollisionMap) {
+      this.customCollisionMap[xy.y][xy.x] = customCollisionPixel;
+    }
   }
 
-  plotByte(xy: XY, byte: number, attribute: ColorAttribute) {
+  plotByte(
+    xy: XY,
+    byte: number,
+    attribute: ColorAttribute,
+    customCollisionByte: number = 0
+  ) {
     const attribX = Math.floor(xy.x / 8);
     const attribY = Math.floor(xy.y / 8);
 
     this.attribs[attribY][attribX] = attribute;
 
-    const plot = (location: XY, bit: number, offset: number) =>
+    const plotBit = (location: XY, bit: number, offset: number) =>
       this.plot(
         location.getOffset(offset, 0),
         !!(byte & bit),
-        attribute
-    );
+        attribute,
+        !!(customCollisionByte & bit)
+      );
 
-    plot(xy, 128, 0);
-    plot(xy, 64, 1);
-    plot(xy, 32, 2);
-    plot(xy, 16, 3);
-    plot(xy, 8, 4);
-    plot(xy, 4, 5);
-    plot(xy, 2, 6);
-    plot(xy, 1, 7);
+    plotBit(xy, 128, 0);
+    plotBit(xy, 64, 1);
+    plotBit(xy, 32, 2);
+    plotBit(xy, 16, 3);
+    plotBit(xy, 8, 4);
+    plotBit(xy, 4, 5);
+    plotBit(xy, 2, 6);
+    plotBit(xy, 1, 7);
   }
 
   setAttribute(attributeLocation: XY, color: ColorAttribute) {
@@ -168,7 +186,6 @@ export default class DrawSurface extends XY {
     return this;
   }
 
-  // { border: '1px solid blue', opacity: 0.5 }
   setStyle(css: { [key: string]: string }): DrawSurface {
     Object.keys(css).forEach((key) => {
       this.canvas.style.setProperty(key, css[key]);
@@ -188,6 +205,27 @@ export default class DrawSurface extends XY {
     return this.flippedHorizontally;
   }
 
+  updateCustomCollisionMap(
+    locationInPixels: XY,
+    widthInPixels: number,
+    heightInPixels: number,
+    value: boolean
+  ) {
+    for (
+      let y = locationInPixels.y;
+      y < locationInPixels.y + heightInPixels;
+      y++
+    ) {
+      for (
+        let x = locationInPixels.x;
+        x < locationInPixels.x + widthInPixels;
+        x++
+      ) {
+        this.customCollisionMap[y][x] = value;
+      }
+    }
+  }
+
   isInCollisionWith(another: DrawSurface): boolean {
     if (
       this.x + this.widthInPixels < another.x ||
@@ -197,6 +235,9 @@ export default class DrawSurface extends XY {
     ) {
       return false;
     }
+
+    const collisionData = this.customCollisionMap || this.pixels;
+    const anotherCollisionData = another.customCollisionMap || another.pixels;
 
     for (let y = 0; y < this.heightInPixels; y++) {
       const yInAnother = y + this.y - another.y;
@@ -210,11 +251,11 @@ export default class DrawSurface extends XY {
           continue;
         }
 
-        if (!this.pixels[y][x]) {
+        if (!collisionData[y][x]) {
           continue;
         }
 
-        if (another.pixels[yInAnother][xInAnother]) {
+        if (anotherCollisionData[yInAnother][xInAnother]) {
           return true;
         }
       }
