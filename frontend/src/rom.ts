@@ -1,7 +1,17 @@
+import ColorAttribute from "./colorAttribute";
+import DrawSurface from "./drawSurface";
 import { range, h, d, b } from "./util";
+import * as ROM from "./rom";
+import XY from "./xy";
+
+console.log("-- rom init --");
 
 const buffer = require("arraybuffer-loader!../resources/dynamite-dan");
 const array = new Uint8Array(buffer);
+
+let viewerVisible = false;
+let viewerOffset = 0;
+let viewerSurfaces: DrawSurface[];
 
 function getTrueOffset(val: number): number {
   return 27 + val - 16384;
@@ -41,4 +51,48 @@ export function hexDump(
           (idx < desc.length ? " " + desc[idx] : "")
       )
     );
+}
+
+export function isViewerVisible() {
+  return viewerVisible;
+}
+
+function redrawMemoryViewer() {
+  viewerSurfaces=[];
+  for(let y=0;y<20;y++) {
+    for(let x=0;x<20;x++) {
+      viewerSurfaces.push(
+        new DrawSurface(
+          new XY(x*8, y*8),
+          8,
+          8,
+          false,
+          false,
+          new ColorAttribute(7, 1, true),
+          ROM.copy(viewerOffset+y*20*8+x*8, 8)
+        )
+          .attachToHtml()
+          .setStyle({ "z-index": "1000" })
+          .show()
+    
+      );
+    }
+  }
+}
+
+export function toggleMemoryViewer() {
+  viewerVisible = !viewerVisible;
+
+  if (viewerVisible) {
+    redrawMemoryViewer();
+  } else {
+    viewerSurfaces.forEach(vs => vs.hide());
+  }
+
+  console.log("visible: " + viewerVisible);
+}
+
+export function adjustMemoryViewerOffset(offset: number) {
+  viewerOffset = Math.max(0, viewerOffset + offset);
+  redrawMemoryViewer();
 }

@@ -71,15 +71,13 @@ export default class RoomManager {
 
   public getRoomIndex(forXY?: XY) {
     return forXY
-    ? forXY.x + forXY.y * roomsPerFloor
-    : this.currentRoom.x + this.currentRoom.y * roomsPerFloor;
+      ? forXY.x + forXY.y * roomsPerFloor
+      : this.currentRoom.x + this.currentRoom.y * roomsPerFloor;
   }
 
-  public getRoomXY(roomIndex: number) {
-    return new XY(
-      roomIndex % roomsPerFloor,
-      Math.floor(roomIndex / roomsPerFloor)
-    );
+  public getRoomXY(roomIndex?: number) {
+    const idx = roomIndex ?? this.getRoomIndex();
+    return new XY(idx % roomsPerFloor, Math.floor(idx / roomsPerFloor));
   }
 
   moveToRoom(roomXy: XY) {
@@ -180,13 +178,14 @@ export default class RoomManager {
     for (var row = 0; row < height; row++) {
       for (var udgY = 0; udgY < 8; udgY++) {
         for (var udgX = 0; udgX < width; udgX++) {
+          const roomByte=ROM.peek(udgPointer + udgX + row * width * 8 + udgY * width);
           surface.plotByte(
             new XY(x * 8 + udgX * 8, y * 8 + row * -8 + udgY),
-            ROM.peek(udgPointer + udgX + row * width * 8 + udgY * width),
+            roomByte,
             // use this color to show collision bitmap data
             // new ColorAttribute(2)
             new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
-            0b11111111
+            roomByte ? 0b11111111 : 0
           );
         }
       }

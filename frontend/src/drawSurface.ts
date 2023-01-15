@@ -126,7 +126,7 @@ export default class DrawSurface extends XY {
     if (pixel || !this.noInkIsTransparent) {
       this.canvasRenderingContext2D.fillRect(xy.x, xy.y, 1, 1);
     }
-
+      
     this.pixels[xy.y][xy.x] = pixel;
 
     if (this.customCollisionMap) {
@@ -135,13 +135,13 @@ export default class DrawSurface extends XY {
   }
 
   plotByte(
-    xy: XY,
+    xyPixelLocation: XY,
     byte: number,
     attribute: ColorAttribute,
     customCollisionByte: number = 0
   ) {
-    const attribX = Math.floor(xy.x / 8);
-    const attribY = Math.floor(xy.y / 8);
+    const attribX = Math.floor(xyPixelLocation.x / 8);
+    const attribY = Math.floor(xyPixelLocation.y / 8);
 
     this.attribs[attribY][attribX] = attribute;
 
@@ -153,14 +153,14 @@ export default class DrawSurface extends XY {
         !!(customCollisionByte & bit)
       );
 
-    plotBit(xy, 128, 0);
-    plotBit(xy, 64, 1);
-    plotBit(xy, 32, 2);
-    plotBit(xy, 16, 3);
-    plotBit(xy, 8, 4);
-    plotBit(xy, 4, 5);
-    plotBit(xy, 2, 6);
-    plotBit(xy, 1, 7);
+    plotBit(xyPixelLocation, 128, 0);
+    plotBit(xyPixelLocation, 64, 1);
+    plotBit(xyPixelLocation, 32, 2);
+    plotBit(xyPixelLocation, 16, 3);
+    plotBit(xyPixelLocation, 8, 4);
+    plotBit(xyPixelLocation, 4, 5);
+    plotBit(xyPixelLocation, 2, 6);
+    plotBit(xyPixelLocation, 1, 7);
   }
 
   setAttribute(attributeLocation: XY, color: ColorAttribute) {

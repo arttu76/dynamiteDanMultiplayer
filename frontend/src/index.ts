@@ -3,6 +3,7 @@ import "../resources/index.css";
 import RoomManager from "./roomManager";
 import TeleporterManager from "./teleportManager";
 import ElevatorManager from "./elevatorManager";
+import RaftManager from "./raftManager";
 import DanManager from "./danManager";
 import XY from "./xy";
 
@@ -15,9 +16,10 @@ addEventListener("resize", resizer);
 resizer();
 
 (async function () {
-  const roomManager = new RoomManager(new XY(3, 5));
+  const roomManager = new RoomManager(new XY(2, 0));
   const teleporterManager = new TeleporterManager(roomManager);
   const elevatorManager = new ElevatorManager(roomManager);
+  const raftManager = new RaftManager(roomManager);
 
   const danManager = new DanManager(
     new XY(75, 32),
@@ -27,19 +29,23 @@ resizer();
   );
 
   document.addEventListener("keyup", (event) => {
-    if (event.key === "ArrowUp") danManager.pressedJump = false;
-    if (event.key === "ArrowRight") danManager.pressedRight = false;
-    if (event.key === "ArrowLeft") danManager.pressedLeft = false;
+    const key=event.key;
 
-    if (event.key === "d") roomManager.moveRight();
-    if (event.key === "a") roomManager.moveLeft();
-    if (event.key === "w") roomManager.moveUp();
-    if (event.key === "s") roomManager.moveDown();
+    if (key === "ArrowUp") danManager.pressedJump = false;
+    if (key === "ArrowRight") danManager.pressedRight = false;
+    if (key === "ArrowLeft") danManager.pressedLeft = false;
 
-    if (event.key === "z") danManager.player.x -= 5;
-    if (event.key === "v") danManager.player.x += 5;
-    if (event.key === "x") danManager.player.y -= 5;
-    if (event.key === "c") danManager.player.y += 5;
+    if (key === "d") roomManager.moveRight();
+    if (key === "a") roomManager.moveLeft();
+    if (key === "w") roomManager.moveUp();
+    if (key === "s") roomManager.moveDown();
+
+    if (key === "z") danManager.player.x -= 5;
+    if (key === "v") danManager.player.x += 5;
+    if (key === "x") danManager.player.y -= 5;
+    if (key === "c") danManager.player.y += 5;
+
+
   });
 
   document.addEventListener("keydown", (event) => {
@@ -48,11 +54,14 @@ resizer();
     if (event.key === "ArrowLeft") danManager.pressedLeft = true;
   });
 
+
+
   setInterval(() => {
     const time = Date.now();
     roomManager.updateMonsters(time);
     teleporterManager.updateTeleporter(time);
     elevatorManager.updateElevator(time);
+    raftManager.updateRaft(time);
     danManager.update(time);
   }, 1000 / 25);
 })();

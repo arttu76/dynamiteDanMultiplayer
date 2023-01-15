@@ -16,6 +16,7 @@ html, body {
     width: 256px;
     transform-origin: center;
     image-rendering: pixelated;
+    overflow: hidden;
 }
 
 canvas {
