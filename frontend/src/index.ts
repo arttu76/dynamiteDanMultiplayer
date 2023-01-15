@@ -16,13 +16,13 @@ addEventListener("resize", resizer);
 resizer();
 
 (async function () {
-  const roomManager = new RoomManager(new XY(2, 0));
+  const roomManager = new RoomManager(new XY(7, 4));
   const teleporterManager = new TeleporterManager(roomManager);
   const elevatorManager = new ElevatorManager(roomManager);
   const raftManager = new RaftManager(roomManager);
 
   const danManager = new DanManager(
-    new XY(75, 32),
+    new XY(205, 32),
     roomManager,
     teleporterManager,
     elevatorManager
@@ -32,6 +32,7 @@ resizer();
     const key=event.key;
 
     if (key === "ArrowUp") danManager.pressedJump = false;
+    if (key === "ArrowDown") danManager.pressedDown = false;
     if (key === "ArrowRight") danManager.pressedRight = false;
     if (key === "ArrowLeft") danManager.pressedLeft = false;
 
@@ -50,6 +51,7 @@ resizer();
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "ArrowUp") danManager.pressedJump = true;
+    if (event.key === "ArrowDown") danManager.pressedDown = true;
     if (event.key === "ArrowRight") danManager.pressedRight = true;
     if (event.key === "ArrowLeft") danManager.pressedLeft = true;
   });

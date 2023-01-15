@@ -10,4 +10,8 @@ export default class XY {
   getOffset(x: number, y: number) {
     return new XY(this.x + x, this.y + y);
   }
+
+  getInverse() {
+    return new XY(-this.x, -this.y);
+  }
 }

@@ -5,6 +5,7 @@ import * as ROM from "./rom";
 import { range, h, d, b } from "./util";
 import Monster from "./monster";
 import XY from "./xy";
+import Dan from "./dan";
 
 const floors = 6;
 const roomsPerFloor = 8;
@@ -12,14 +13,16 @@ const roomsPerFloor = 8;
 export default class RoomManager {
   currentRoom: XY;
   rooms: DrawSurface[] = [];
+  ladderCollisionMaps: DrawSurface[] = [];
   monsters: Monster[][] = [];
 
   constructor(initialRoom: XY) {
     range(roomsPerFloor * floors)
       .map((num) => this.initializeRoom(num))
-      .forEach((roomAndMonsters, roomNumber) => {
-        this.rooms[roomNumber] = roomAndMonsters.room;
-        this.monsters[roomNumber] = roomAndMonsters.monsters;
+      .forEach((roomAndLaddersAndMonsters, roomNumber) => {
+        this.rooms[roomNumber] = roomAndLaddersAndMonsters.room;
+        this.ladderCollisionMaps[roomNumber] = roomAndLaddersAndMonsters.ladderCollisionMap;
+        this.monsters[roomNumber] = roomAndLaddersAndMonsters.monsters;
       });
 
     this.moveToRoom(initialRoom); // original starting position: 3,5
@@ -86,9 +89,12 @@ export default class RoomManager {
       this.getCurrentMonsters().forEach((m) => m.hide());
     }
     this.currentRoom = roomXy;
-    this.getCurrentRoom().attachToHtml().setStyle({ "z-index": "0" }).show();
+    this.getCurrentRoom()
+      .attachToHtml()
+      .setStyle({ "z-index": "0" })
+      .show();
     this.getCurrentMonsters().forEach((m) => m.show());
-
+    
     console.log(
       "Moved to room x:" +
         this.currentRoom.x +
@@ -108,18 +114,35 @@ export default class RoomManager {
 
   private initializeRoom(roomNumber: number): {
     room: DrawSurface;
+    ladderCollisionMap: DrawSurface;
     monsters: Monster[];
   } {
+    const parsedRoom = this.parseRoomFromRom(roomNumber);
     return {
-      room: this.parseRoomFromRom(roomNumber),
+      room: parsedRoom.ds,
+      ladderCollisionMap: parsedRoom.ladderCollisionMap,
       monsters: this.parseMonstersFromRom(roomNumber),
     };
   }
 
-  private parseRoomFromRom(roomNumber: number): DrawSurface {
+  private parseRoomFromRom(roomNumber: number): {
+    ds: DrawSurface;
+    ladderCollisionMap: DrawSurface;
+  } {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
     const ds = new DrawSurface(new XY(0, 0), 256, 192, false, true);
+    const ladderCollisionMap = new DrawSurface(new XY(0, 0), 256, 192, true, false);
+
+    const addLadderCharBlockIfRequired = (udgId: number, xy: XY) => {
+      if (udgId === 150) {
+        range(8).forEach(y => range(2).forEach(x => ladderCollisionMap.plotByte(
+          new XY(xy.x*8+x*8, xy.y*8+y),
+          255,
+          new ColorAttribute(7,0,false) // doesn't actually matter
+        )));
+      }
+    };
 
     do {
       const y = ROM.peek(udgPointer++);
@@ -144,22 +167,32 @@ export default class RoomManager {
             ? 1
             : 0;
 
+        const isStairs = id === 150;
+
         let curX = x;
         let curY = y;
         for (let i = 0; i < repeat; i++) {
-          this.drawUdg(ds, curX, curY, id);
+          this.drawUdg(ds, curX, curY, id, isStairs);
+          addLadderCharBlockIfRequired(id, new XY(curX, curY));
           curX = curX + xDir * skip;
           curY = curY + yDir * skip;
         }
       } else {
-        this.drawUdg(ds, x, y, id);
+        this.drawUdg(ds, x, y, id, false);
+        addLadderCharBlockIfRequired(id, new XY(x, y));
       }
     } while (ROM.peek(udgPointer) !== 255);
 
-    return ds;
+    return { ds, ladderCollisionMap };
   }
 
-  private drawUdg(surface: DrawSurface, x: number, y: number, udgId: number) {
+  private drawUdg(
+    surface: DrawSurface,
+    x: number,
+    y: number,
+    udgId: number,
+    stairs: boolean
+  ) {
     const udgIndex = d("6C46") + udgId * 2;
     let udgPointer = ROM.pointer([ROM.peek(udgIndex), ROM.peek(udgIndex + 1)]);
 
@@ -178,18 +211,47 @@ export default class RoomManager {
     for (var row = 0; row < height; row++) {
       for (var udgY = 0; udgY < 8; udgY++) {
         for (var udgX = 0; udgX < width; udgX++) {
-          const roomByte=ROM.peek(udgPointer + udgX + row * width * 8 + udgY * width);
+          const roomByte = ROM.peek(
+            udgPointer + udgX + row * width * 8 + udgY * width
+          );
           surface.plotByte(
             new XY(x * 8 + udgX * 8, y * 8 + row * -8 + udgY),
             roomByte,
             // use this color to show collision bitmap data
             // new ColorAttribute(2)
             new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
-            roomByte ? 0b11111111 : 0
+            roomByte && !stairs ? 0b11111111 : 0
           );
         }
       }
     }
+  }
+
+  private isTouchingLadderCollisionMap(player: Dan, offset: XY) {
+    const playerFrame=player.getCurrentFrame();
+
+    playerFrame.setPosition(
+      new XY(player.x+offset.x, player.y+offset.y)
+    );
+
+    const result = playerFrame.isInCollisionWith(
+      this.ladderCollisionMaps[this.getRoomIndex()]
+    );
+
+    playerFrame.setPosition(
+      new XY(player.x-offset.x, player.y-offset.y)
+    );
+
+    return result;
+  }
+
+  isInLadder(player: Dan): boolean {
+    return this.isTouchingLadderCollisionMap(player, new XY(0,0));
+  }
+
+  isOnTopOfLadder(player: Dan): boolean {
+    return !this.isInLadder(player)
+    && this.isTouchingLadderCollisionMap(player, new XY(0,1));
   }
 
   private parseMonstersFromRom(roomNumber: number): Monster[] {

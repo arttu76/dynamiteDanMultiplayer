@@ -25,6 +25,7 @@ export default class DanManager {
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
   public pressedJump: boolean = false;
+  public pressedDown: boolean = false;
 
   constructor(
     initialDanPosition: XY,
@@ -79,41 +80,37 @@ export default class DanManager {
   }
 
   private updatePlayer(time: number): void {
-    const collidesWithRoom = (offsetX: number, offsetY: number) => {
-      this.player
-        .getCurrentFrame()
-        .setPosition(new XY(this.player.x + offsetX, this.player.y + offsetY));
+    const collidesWithRoom = (offset?: XY) => {
+      offset && this.player.move(offset);
       const collisionResult = this.player
         .getCurrentFrame()
         .isInCollisionWith(this.roomManager.getCurrentRoom());
-      this.player
-        .getCurrentFrame()
-        .setPosition(new XY(this.player.x - offsetX, this.player.y - offsetY));
+        offset && this.player.move(offset.getInverse());
       return collisionResult;
     };
 
     this.player.getCurrentFrame().hide();
 
     // extra check for elevator
-    if(
-      collidesWithRoom(0, 0) // elevator floor moving up "digs into" players' feet
-      && !collidesWithRoom(0, -1) // player would be okay if it was on the elevator
+    if (
+      collidesWithRoom() && // elevator floor moving up "digs into" players' feet
+      !collidesWithRoom(new XY(0, -1)) // player would be okay if it was on the elevator
     ) {
-      this.player.y--;
+      this.player.move(new XY(0, -1));
     }
 
     if (this.pressedLeft && !this.pressedRight) {
       let walkedLeft = false;
       // walk horizontally to left
-      if (!collidesWithRoom(-1, 0)) {
+      if (!collidesWithRoom(new XY(-1, 0))) {
         walkedLeft = true;
         // try climbing
-      } else if (!collidesWithRoom(-1, -1)) {
+      } else if (!collidesWithRoom(new XY(-1, -1))) {
         walkedLeft = true;
         this.player.y--;
       }
       if (walkedLeft) {
-        this.player.x--;
+        this.player.move(new XY(-1, 0));
         this.player.facingLeft = true;
         this.player.frame = this.player.frame === 0 ? 3 : this.player.frame - 1;
       }
@@ -122,43 +119,54 @@ export default class DanManager {
     if (!this.pressedLeft && this.pressedRight) {
       let walkedRight = false;
       // walk horizontally to right
-      if (!collidesWithRoom(1, 0)) {
+      if (!collidesWithRoom(new XY(1, 0))) {
         walkedRight = true;
         // try climbing
-      } else if (!collidesWithRoom(1, -1)) {
+      } else if (!collidesWithRoom(new XY(1, -1))) {
         walkedRight = true;
         this.player.y--;
       }
 
       if (walkedRight) {
-        this.player.x++;
+        this.player.move(new XY(1, 0));
         this.player.facingLeft = false;
         this.player.frame = (this.player.frame + 1) % 4;
       }
     }
 
-    let isOnStableGround = collidesWithRoom(0, 1);
+    if (this.roomManager.isInLadder(this.player)) {
+      if (this.pressedJump && !this.pressedDown && !collidesWithRoom(new XY(0, -1))) {
+        this.player.move(new XY(0, -1));
+      }
 
-    // initialize jump
-    if(this.pressedJump && isOnStableGround) {
-      this.player.jumpFrame = 1;
-      this.player.jumpMaxHeight = 26;
-    }
-
-    // if ...
-    if(
-      this.player.jumpFrame // ... jumping ...
-      && this.player.jumpFrame < this.player.jumpMaxHeight // ... and we can go up
-      && !collidesWithRoom(0, -1) // ... and there is room
-    ) {
-      // ... then move up ...
-      this.player.jumpFrame++;
-      this.player.y--;
+      if (!this.pressedJump && this.pressedDown && !collidesWithRoom(new XY(0, 1))) {
+        this.player.move(new XY(0, 1));
+      }
     } else {
-      // ... but otherwise fall down
-      if(!isOnStableGround && !collidesWithRoom(0, 1)) {
-        this.player.jumpFrame = 0;
-        this.player.y++;
+      const isOnStableGround =
+        collidesWithRoom(new XY(0, 1)) || this.roomManager.isOnTopOfLadder(this.player);
+
+      // initialize jump
+      if (this.pressedJump && isOnStableGround) {
+        this.player.jumpFrame = 1;
+        this.player.jumpMaxHeight = 26;
+      }
+
+      // if ...
+      if (
+        this.player.jumpFrame && // ... jumping ...
+        this.player.jumpFrame < this.player.jumpMaxHeight && // ... and we can go up
+        !collidesWithRoom(new XY(0, -1)) // ... and there is room
+      ) {
+        // ... then move up ...
+        this.player.jumpFrame++;
+        this.player.y--;
+      } else {
+        // ... but otherwise fall down
+        if (!isOnStableGround && !collidesWithRoom(new XY(0, 1))) {
+          this.player.jumpFrame = 0;
+          this.player.y++;
+        }
       }
     }
 
@@ -183,7 +191,8 @@ export default class DanManager {
       this.roomManager.moveDown();
     }
     if (this.player.y < 0) {
-      this.player.y = 8*19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;
+      this.player.y =
+        8 * 19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;
       this.roomManager.moveUp();
     }
   }

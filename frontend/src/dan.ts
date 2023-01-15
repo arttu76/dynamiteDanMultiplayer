@@ -33,4 +33,15 @@ export default class Dan extends XY {
     ];
   }
 
+  move(xy: XY) {
+    this.x+=xy.x;
+    this.y+=xy.y;
+    [
+    ...this.leftFacingFrames,
+    ...this.rightFacingFrames
+    ].forEach(frame => frame.setPosition(new XY(
+      this.x, this.y
+    )));
+  }
+
 }
