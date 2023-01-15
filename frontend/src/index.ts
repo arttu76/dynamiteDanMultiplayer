@@ -10,26 +10,26 @@ import XY from "./xy";
 const resizer = () =>
   ((document.querySelector("#container") as HTMLElement).style.transform =
     "scale(" +
-    Math.min(window.innerWidth / 256, window.innerHeight / 192) +
+    Math.min(window.innerWidth / 256, window.innerHeight / (192-4*8)) +
     ")");
 addEventListener("resize", resizer);
 resizer();
 
 (async function () {
-  const roomManager = new RoomManager(new XY(7, 4));
+  const roomManager = new RoomManager(new XY(3, 5)); // proper start location 3,5
   const teleporterManager = new TeleporterManager(roomManager);
   const elevatorManager = new ElevatorManager(roomManager);
   const raftManager = new RaftManager(roomManager);
 
   const danManager = new DanManager(
-    new XY(205, 32),
+    new XY(130, 20), // proper start location 130, 20
     roomManager,
     teleporterManager,
     elevatorManager
   );
 
   document.addEventListener("keyup", (event) => {
-    const key=event.key;
+    const key = event.key;
 
     if (key === "ArrowUp") danManager.pressedJump = false;
     if (key === "ArrowDown") danManager.pressedDown = false;
@@ -45,8 +45,6 @@ resizer();
     if (key === "v") danManager.player.x += 5;
     if (key === "x") danManager.player.y -= 5;
     if (key === "c") danManager.player.y += 5;
-
-
   });
 
   document.addEventListener("keydown", (event) => {
@@ -55,8 +53,6 @@ resizer();
     if (event.key === "ArrowRight") danManager.pressedRight = true;
     if (event.key === "ArrowLeft") danManager.pressedLeft = true;
   });
-
-
 
   setInterval(() => {
     const time = Date.now();

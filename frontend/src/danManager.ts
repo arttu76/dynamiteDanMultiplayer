@@ -85,9 +85,11 @@ export default class DanManager {
       const collisionResult = this.player
         .getCurrentFrame()
         .isInCollisionWith(this.roomManager.getCurrentRoom());
-        offset && this.player.move(offset.getInverse());
+      offset && this.player.move(offset.getInverse());
       return collisionResult;
     };
+
+    const isInRoomWithWater = this.roomManager.getRoomXY().y === 0;
 
     this.player.getCurrentFrame().hide();
 
@@ -135,16 +137,25 @@ export default class DanManager {
     }
 
     if (this.roomManager.isInLadder(this.player)) {
-      if (this.pressedJump && !this.pressedDown && !collidesWithRoom(new XY(0, -1))) {
+      if (
+        this.pressedJump &&
+        !this.pressedDown &&
+        !collidesWithRoom(new XY(0, -1))
+      ) {
         this.player.move(new XY(0, -1));
       }
 
-      if (!this.pressedJump && this.pressedDown && !collidesWithRoom(new XY(0, 1))) {
+      if (
+        !this.pressedJump &&
+        this.pressedDown &&
+        !collidesWithRoom(new XY(0, 1))
+      ) {
         this.player.move(new XY(0, 1));
       }
     } else {
       const isOnStableGround =
-        collidesWithRoom(new XY(0, 1)) || this.roomManager.isOnTopOfLadder(this.player);
+        collidesWithRoom(new XY(0, 1)) ||
+        this.roomManager.isOnTopOfLadder(this.player);
 
       // initialize jump
       if (this.pressedJump && isOnStableGround) {
@@ -184,12 +195,19 @@ export default class DanManager {
       this.roomManager.moveRight();
     }
     if (
+      !isInRoomWithWater &&
       this.player.y >
-      192 - danHeightInChars * 8 - 4 * 8 + danHeightDeficiencyInPixels
+        192 + -danHeightInChars * 8 - 4 * 8 + danHeightDeficiencyInPixels
     ) {
       this.player.y = 0;
       this.roomManager.moveDown();
     }
+    if (isInRoomWithWater && this.player.y > 160) {
+      this.roomManager.moveToRoom(new XY(3, 5));
+      this.player.x = 130;
+      this.player.y = 20;
+    }
+
     if (this.player.y < 0) {
       this.player.y =
         8 * 19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;

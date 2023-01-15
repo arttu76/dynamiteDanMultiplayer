@@ -8,9 +8,14 @@ import { range, d } from "./util";
 
 export default class RaftManager {
   raftFrames: DrawSurface[];
+  waterSurface: DrawSurface;
 
   constructor(private roomManager: RoomManager) {
     const raftColor = new ColorAttribute(2, 0, false);
+    this.waterSurface = new DrawSurface(new XY(0, 19*8), 256, 8*3, false, false)
+    .attachToHtml()
+    .setStyle({ "z-index": "100" })
+    .hide();
 
     this.raftFrames = range(4).map(
       (frameNumber) =>
@@ -18,7 +23,7 @@ export default class RaftManager {
           new XY(50 + frameNumber * 8, 20),
           8 * 4,
           8,
-          false, // true,
+          true,
           false,
           raftColor
         )
@@ -96,10 +101,12 @@ export default class RaftManager {
   private drawWater(time: number, room: DrawSurface): void {
     const animationOffset = Math.round(time / 125);
 
+    this.waterSurface.show();
+
     range(32).forEach((x) =>
       range(8).forEach((y) =>
-        room.plotByte(
-          new XY(x * 8, 19 * 8 + y),
+        this.waterSurface.plotByte(
+          new XY(x * 8, y),
           y < 3
             ? ROM.peek(d("6985") + ((y + (x + animationOffset) * 4) % 97))
             : 0,
@@ -113,6 +120,7 @@ export default class RaftManager {
   updateRaft(time: number): void {
     if (this.roomManager.getRoomXY().y > 0) {
       this.hideAllRaftFrames();
+      this.waterSurface.hide();
       return;
     }
     const room = this.roomManager.getCurrentRoom();

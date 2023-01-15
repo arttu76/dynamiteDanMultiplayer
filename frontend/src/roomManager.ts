@@ -21,7 +21,8 @@ export default class RoomManager {
       .map((num) => this.initializeRoom(num))
       .forEach((roomAndLaddersAndMonsters, roomNumber) => {
         this.rooms[roomNumber] = roomAndLaddersAndMonsters.room;
-        this.ladderCollisionMaps[roomNumber] = roomAndLaddersAndMonsters.ladderCollisionMap;
+        this.ladderCollisionMaps[roomNumber] =
+          roomAndLaddersAndMonsters.ladderCollisionMap;
         this.monsters[roomNumber] = roomAndLaddersAndMonsters.monsters;
       });
 
@@ -89,12 +90,9 @@ export default class RoomManager {
       this.getCurrentMonsters().forEach((m) => m.hide());
     }
     this.currentRoom = roomXy;
-    this.getCurrentRoom()
-      .attachToHtml()
-      .setStyle({ "z-index": "0" })
-      .show();
+    this.getCurrentRoom().attachToHtml().setStyle({ "z-index": "0" }).show();
     this.getCurrentMonsters().forEach((m) => m.show());
-    
+
     console.log(
       "Moved to room x:" +
         this.currentRoom.x +
@@ -131,16 +129,29 @@ export default class RoomManager {
   } {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
-    const ds = new DrawSurface(new XY(0, 0), 256, 192, false, true);
-    const ladderCollisionMap = new DrawSurface(new XY(0, 0), 256, 192, true, false);
+    const ds = new DrawSurface(new XY(0, 0), 256, 160, false, true);
+    const ladderCollisionMap = new DrawSurface(
+      new XY(0, 0),
+      256,
+      160,
+      true,
+      false
+    );
 
     const addLadderCharBlockIfRequired = (udgId: number, xy: XY) => {
-      if (udgId === 150) {
-        range(8).forEach(y => range(2).forEach(x => ladderCollisionMap.plotByte(
-          new XY(xy.x*8+x*8, xy.y*8+y),
-          255,
-          new ColorAttribute(7,0,false) // doesn't actually matter
-        )));
+      if (
+        udgId === 150 || // regular ladder (2 chars wide)
+        udgId === 25 // zeppelin propeller (one char wide)
+      ) {
+        range(8).forEach((y) =>
+          range(udgId === 150 ? 2 : 1).forEach((x) =>
+            ladderCollisionMap.plotByte(
+              new XY(xy.x * 8 + x * 8, xy.y * 8 + y),
+              255,
+              new ColorAttribute(7, 0, false) // doesn't actually matter
+            )
+          )
+        );
       }
     };
 
@@ -167,18 +178,16 @@ export default class RoomManager {
             ? 1
             : 0;
 
-        const isStairs = id === 150;
-
         let curX = x;
         let curY = y;
         for (let i = 0; i < repeat; i++) {
-          this.drawUdg(ds, curX, curY, id, isStairs);
+          this.drawUdg(ds, curX, curY, id);
           addLadderCharBlockIfRequired(id, new XY(curX, curY));
           curX = curX + xDir * skip;
           curY = curY + yDir * skip;
         }
       } else {
-        this.drawUdg(ds, x, y, id, false);
+        this.drawUdg(ds, x, y, id);
         addLadderCharBlockIfRequired(id, new XY(x, y));
       }
     } while (ROM.peek(udgPointer) !== 255);
@@ -186,13 +195,7 @@ export default class RoomManager {
     return { ds, ladderCollisionMap };
   }
 
-  private drawUdg(
-    surface: DrawSurface,
-    x: number,
-    y: number,
-    udgId: number,
-    stairs: boolean
-  ) {
+  private drawUdg(surface: DrawSurface, x: number, y: number, udgId: number) {
     const udgIndex = d("6C46") + udgId * 2;
     let udgPointer = ROM.pointer([ROM.peek(udgIndex), ROM.peek(udgIndex + 1)]);
 
@@ -208,6 +211,17 @@ export default class RoomManager {
         : ROM.peek(colorPointer++)
     );
 
+    const isColllidableUdg =
+      [
+        150, // ladder
+        132, // zeppelin left top
+        133, // zeppeling left bottom
+        134, // zeppelin right top
+        135, // zeppelin right bottom
+        25, // zeppelin propeller
+        // 41, // vertical pipe
+      ].indexOf(udgId) === -1;
+
     for (var row = 0; row < height; row++) {
       for (var udgY = 0; udgY < 8; udgY++) {
         for (var udgX = 0; udgX < width; udgX++) {
@@ -220,7 +234,7 @@ export default class RoomManager {
             // use this color to show collision bitmap data
             // new ColorAttribute(2)
             new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
-            roomByte && !stairs ? 0b11111111 : 0
+            roomByte && isColllidableUdg ? 0b11111111 : 0
           );
         }
       }
@@ -228,30 +242,28 @@ export default class RoomManager {
   }
 
   private isTouchingLadderCollisionMap(player: Dan, offset: XY) {
-    const playerFrame=player.getCurrentFrame();
+    const playerFrame = player.getCurrentFrame();
 
-    playerFrame.setPosition(
-      new XY(player.x+offset.x, player.y+offset.y)
-    );
+    playerFrame.setPosition(new XY(player.x + offset.x, player.y + offset.y));
 
     const result = playerFrame.isInCollisionWith(
       this.ladderCollisionMaps[this.getRoomIndex()]
     );
 
-    playerFrame.setPosition(
-      new XY(player.x-offset.x, player.y-offset.y)
-    );
+    playerFrame.setPosition(new XY(player.x - offset.x, player.y - offset.y));
 
     return result;
   }
 
   isInLadder(player: Dan): boolean {
-    return this.isTouchingLadderCollisionMap(player, new XY(0,0));
+    return this.isTouchingLadderCollisionMap(player, new XY(0, 0));
   }
 
   isOnTopOfLadder(player: Dan): boolean {
-    return !this.isInLadder(player)
-    && this.isTouchingLadderCollisionMap(player, new XY(0,1));
+    return (
+      !this.isInLadder(player) &&
+      this.isTouchingLadderCollisionMap(player, new XY(0, 1))
+    );
   }
 
   private parseMonstersFromRom(roomNumber: number): Monster[] {

@@ -12,7 +12,7 @@ html, body {
 
 #container {
     position: relative;
-    height: 192px;
+    height: 160px;
     width: 256px;
     transform-origin: center;
     image-rendering: pixelated;
