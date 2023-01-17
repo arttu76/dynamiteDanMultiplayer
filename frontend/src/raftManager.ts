@@ -98,7 +98,7 @@ export default class RaftManager {
     this.raftFrames.forEach((frame) => frame.hide());
   }
 
-  private drawWater(time: number, room: DrawSurface): void {
+  private drawWater(time: number): void {
     const animationOffset = Math.round(time / 125);
 
     this.waterSurface.show();
@@ -125,6 +125,6 @@ export default class RaftManager {
     }
     const room = this.roomManager.getCurrentRoom();
     this.drawRaft(time, room);
-    this.drawWater(time, room);
+    this.drawWater(time);
   }
 }

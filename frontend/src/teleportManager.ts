@@ -68,7 +68,7 @@ export default class TeleporterManager {
     this.teleporterActiveInThisFrame = time % 20000 < 5000;
 
     if (!this.teleporterActiveInThisFrame) {
-      for (let x = 0; x < teleporterBeamWidthInChars; x++) {
+      range(teleporterBeamWidthInChars).forEach(x => {
         // teleporter "emitters"
         this.roomManager.getCurrentRoom().setAttribute(
           teleporter.positionInChars.getOffset(x, 0),
@@ -76,20 +76,20 @@ export default class TeleporterManager {
         );
 
         if (this.teleporterActiveInPreviousFrame) {
-          for (let y = 0; y < teleporterBeamHeightInChars; y++) {
+          range(teleporterBeamHeightInChars).forEach(y => {
             this.roomManager.getCurrentRoom().setAttribute(
               teleporter.positionInChars.getOffset(x, y + 1),
               new ColorAttribute(7, 0, false)
             );
-          }
+          });
         }
-      }
+      });
       return;
     }
 
     const color = new ColorAttribute(0, (Math.round(time / 25) % 7) + 1, false);
 
-    for (let x = 0; x < teleporterBeamWidthInChars; x++) {
+    range(teleporterBeamWidthInChars).forEach(x => {
       // teleporter "emitters"
       this.roomManager.getCurrentRoom().setAttribute(
         teleporter.positionInChars.getOffset(x, 0),
@@ -101,13 +101,13 @@ export default class TeleporterManager {
       );
 
       // teleporter "air"
-      for (let y = 0; y < teleporterBeamHeightInChars; y++) {
+      range(teleporterBeamHeightInChars).forEach(y => {
         this.roomManager.getCurrentRoom().setAttribute(
           teleporter.positionInChars.getOffset(x, y + 1),
           color
         );
-      }
-    }
+      });
+    });
   }
 
   teleportPlayerIfRequired(player: Dan): void {

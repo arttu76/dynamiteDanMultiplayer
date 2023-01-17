@@ -23,8 +23,6 @@ If you want to do a development build which automatically updates components whe
 
 ## TODO
 ### Frontend
- - fix walking (glitches because it is pixel perfect, it should not be)
- - walking on ladders
  - walking on trampolines
  - fix too few animation frames parsed from rom
  - backend socketjs integration

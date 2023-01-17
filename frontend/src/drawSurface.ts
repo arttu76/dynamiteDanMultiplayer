@@ -61,14 +61,14 @@ export default class DrawSurface extends XY {
     this.canvas.style.width = widthInPixels + "px";
     this.canvas.style.height = heightInPixels + "px";
 
-    const initAttrib = <T>(itemSize: number, init: T): T[][] =>
+    const initializeArray = <T>(itemSize: number, init: T): T[][] =>
       new Array(heightInPixels / itemSize)
         .fill(-1)
         .map(() => new Array(widthInPixels / itemSize).fill(init));
 
-    this.pixels = initAttrib(1, false);
-    this.attribs = initAttrib(8, null);
-    this.customCollisionMap = customCollisionMap ? initAttrib(1, false) : null;
+    this.pixels = initializeArray(1, false);
+    this.attribs = initializeArray(8, null);
+    this.customCollisionMap = customCollisionMap ? initializeArray(1, false) : null;
 
     this.canvasRenderingContext2D = this.canvas.getContext("2d", {
       alpha: true,
@@ -117,7 +117,7 @@ export default class DrawSurface extends XY {
     xy: XY,
     pixel: boolean,
     color: ColorAttribute,
-    customCollisionPixel = false
+    customCollisionPixel: boolean = false
   ) {
     this.canvasRenderingContext2D.fillStyle = (
       color.bright ? brightColors : normalColors
@@ -129,7 +129,7 @@ export default class DrawSurface extends XY {
       
     this.pixels[xy.y][xy.x] = pixel;
 
-    if (this.customCollisionMap) {
+    if (this.customCollisionMap && customCollisionPixel!==null) {
       this.customCollisionMap[xy.y][xy.x] = customCollisionPixel;
     }
   }
@@ -145,12 +145,11 @@ export default class DrawSurface extends XY {
 
     this.attribs[attribY][attribX] = attribute;
 
-    const plotBit = (location: XY, bit: number, offset: number) =>
-      this.plot(
+    const plotBit = (location: XY, mask: number, offset: number) => this.plot(
         location.getOffset(offset, 0),
-        !!(byte & bit),
+        !!(byte & mask),
         attribute,
-        !!(customCollisionByte & bit)
+        customCollisionByte===null ? null : !!(customCollisionByte & mask)
       );
 
     plotBit(xyPixelLocation, 128, 0);

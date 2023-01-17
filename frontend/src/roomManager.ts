@@ -10,6 +10,22 @@ import Dan from "./dan";
 const floors = 6;
 const roomsPerFloor = 8;
 
+const ladderUdgIds = [
+  150, // regular ladder (2 chars wide)
+  99, // another regular ladder (2 chars wide)
+  98, // top of ladder (2 chars wide)
+  25, // zeppelin propeller (one char wide)
+];
+
+const nonCollisionUdgIds = [
+  ...ladderUdgIds,
+  132, // zeppelin left top
+  133, // zeppeling left bottom
+  134, // zeppelin right top
+  135, // zeppelin right bottom
+  25, // zeppelin propeller
+];
+
 export default class RoomManager {
   currentRoom: XY;
   rooms: DrawSurface[] = [];
@@ -117,19 +133,20 @@ export default class RoomManager {
   } {
     const parsedRoom = this.parseRoomFromRom(roomNumber);
     return {
-      room: parsedRoom.ds,
+      room: parsedRoom.room,
       ladderCollisionMap: parsedRoom.ladderCollisionMap,
       monsters: this.parseMonstersFromRom(roomNumber),
     };
   }
 
   private parseRoomFromRom(roomNumber: number): {
-    ds: DrawSurface;
+    room: DrawSurface;
     ladderCollisionMap: DrawSurface;
   } {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
-    const ds = new DrawSurface(new XY(0, 0), 256, 160, false, true);
+    const room = new DrawSurface(new XY(0, 0), 256, 160, false, true);
+
     const ladderCollisionMap = new DrawSurface(
       new XY(0, 0),
       256,
@@ -138,13 +155,10 @@ export default class RoomManager {
       false
     );
 
-    const addLadderCharBlockIfRequired = (udgId: number, xy: XY) => {
-      if (
-        udgId === 150 || // regular ladder (2 chars wide)
-        udgId === 25 // zeppelin propeller (one char wide)
-      ) {
+    const addToLadderCharCollosionMapIfRequired = (udgId: number, xy: XY) => {
+      if (ladderUdgIds.includes(udgId)) {
         range(8).forEach((y) =>
-          range(udgId === 150 ? 2 : 1).forEach((x) =>
+          range(udgId === 25 ? 1 : 2).forEach((x) =>
             ladderCollisionMap.plotByte(
               new XY(xy.x * 8 + x * 8, xy.y * 8 + y),
               255,
@@ -178,24 +192,22 @@ export default class RoomManager {
             ? 1
             : 0;
 
-        let curX = x;
-        let curY = y;
+        let xy = new XY(x, y);
         for (let i = 0; i < repeat; i++) {
-          this.drawUdg(ds, curX, curY, id);
-          addLadderCharBlockIfRequired(id, new XY(curX, curY));
-          curX = curX + xDir * skip;
-          curY = curY + yDir * skip;
+          this.drawUdg(room, xy, id);
+          addToLadderCharCollosionMapIfRequired(id, xy);
+          xy = xy.getOffset(xDir * skip, yDir * skip);
         }
       } else {
-        this.drawUdg(ds, x, y, id);
-        addLadderCharBlockIfRequired(id, new XY(x, y));
+        this.drawUdg(room, new XY(x, y), id);
+        addToLadderCharCollosionMapIfRequired(id, new XY(x, y));
       }
     } while (ROM.peek(udgPointer) !== 255);
 
-    return { ds, ladderCollisionMap };
+    return { room, ladderCollisionMap };
   }
 
-  private drawUdg(surface: DrawSurface, x: number, y: number, udgId: number) {
+  private drawUdg(room: DrawSurface, xy: XY, udgId: number) {
     const udgIndex = d("6C46") + udgId * 2;
     let udgPointer = ROM.pointer([ROM.peek(udgIndex), ROM.peek(udgIndex + 1)]);
 
@@ -211,34 +223,25 @@ export default class RoomManager {
         : ROM.peek(colorPointer++)
     );
 
-    const isColllidableUdg =
-      [
-        150, // ladder
-        132, // zeppelin left top
-        133, // zeppeling left bottom
-        134, // zeppelin right top
-        135, // zeppelin right bottom
-        25, // zeppelin propeller
-        // 41, // vertical pipe
-      ].indexOf(udgId) === -1;
-
-    for (var row = 0; row < height; row++) {
-      for (var udgY = 0; udgY < 8; udgY++) {
-        for (var udgX = 0; udgX < width; udgX++) {
-          const roomByte = ROM.peek(
+    range(height).forEach((row) =>
+      range(8).forEach((udgY) =>
+        range(width).forEach((udgX) => {
+          const udgGraphicsByte = ROM.peek(
             udgPointer + udgX + row * width * 8 + udgY * width
           );
-          surface.plotByte(
-            new XY(x * 8 + udgX * 8, y * 8 + row * -8 + udgY),
-            roomByte,
-            // use this color to show collision bitmap data
-            // new ColorAttribute(2)
-            new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
-            roomByte && isColllidableUdg ? 0b11111111 : 0
+          room.plotByte(
+            new XY(xy.x * 8 + udgX * 8, xy.y * 8 + row * -8 + udgY),
+            udgGraphicsByte,
+            udgId === 132 || udgId === 134 // color hack tweak for zeppelin girders
+              ? new ColorAttribute(2, 0, false)
+              : new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
+            !nonCollisionUdgIds.includes(udgId) && udgGraphicsByte
+              ? 0b11111111
+              : 0
           );
-        }
-      }
-    }
+        })
+      )
+    );
   }
 
   private isTouchingLadderCollisionMap(player: Dan, offset: XY) {

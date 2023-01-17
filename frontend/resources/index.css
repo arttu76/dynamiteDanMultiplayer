@@ -19,7 +19,7 @@ html, body {
     overflow: hidden;
 }
 
-canvas {
-    position: absolute;
-    z-index: 2;
-} 
+#container  canvas {
+    z-index: 100;
+}
+

@@ -18,6 +18,12 @@ const danDataSize =
   danWidthInChars * (danHeightInChars * 8 - danHeightDeficiencyInPixels);
 const danColor = new ColorAttribute(5, 0, false);
 
+const danCollisionFrame = new DrawSurface(new XY(0,0), danWidthInChars*8, danHeightInChars*8, true, false);
+range(danHeightInChars*8-danHeightDeficiencyInPixels-4).forEach(y => {
+  danCollisionFrame.plotByte(new XY(0, y+2), 0b01111111, new ColorAttribute(2, 0, false));  
+  danCollisionFrame.plotByte(new XY(8, y+2), 0b11100000, new ColorAttribute(3, 0, false));  
+});
+
 export default class DanManager {
   player: Dan;
   others: Dan[];
@@ -47,12 +53,15 @@ export default class DanManager {
 
     /* uncomment to view dan frames
     [...frames.leftFacingFrames,
-      ...frames.rightFacingFrames]
+      ...frames.rightFacingFrames,
+    ]
       .forEach(
-      (f, idx) => f.setStyle({"opacity": "1", "background":"black", "border": "1px solid blue" }).setPosition(idx*30, 10)
+      (f, idx) => f.setStyle({"opacity": "1", "border": "1px solid blue", "z-index": "2000" }).setPosition(new XY(idx*30, 10)).show()
     );
-    */
+    danCollisionFrame.setStyle({"opacity": "1", "border": "1px solid red", "z-index": "2000" }).setPosition(new XY(30*7, 10)).show()
+     */
   }
+
 
   private parseDanFrames(): {
     rightFacingFrames: DrawSurface[];
@@ -81,12 +90,8 @@ export default class DanManager {
 
   private updatePlayer(time: number): void {
     const collidesWithRoom = (offset?: XY) => {
-      offset && this.player.move(offset);
-      const collisionResult = this.player
-        .getCurrentFrame()
-        .isInCollisionWith(this.roomManager.getCurrentRoom());
-      offset && this.player.move(offset.getInverse());
-      return collisionResult;
+      danCollisionFrame.setPosition(offset ? this.player.getOffset(offset.x, offset.y) : this.player);
+      return danCollisionFrame.isInCollisionWith(this.roomManager.getCurrentRoom());
     };
 
     const isInRoomWithWater = this.roomManager.getRoomXY().y === 0;
