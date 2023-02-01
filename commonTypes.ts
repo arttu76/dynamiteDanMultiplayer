@@ -9,7 +9,8 @@ export enum CommEventNames {
     PlayerUpdateFromClient = 'u',
     PlayerStatusFromServer = 'p',
     PlayerRemove = 'r',
-    MonsterDeath = 'd'
+    MonsterDeath = 'd',
+    ChatMessage = 'c'
 }
 
 // info player receives from server when first initializing
@@ -45,4 +46,8 @@ export interface CommMonsterDeath {
     roomNumber: number,
     monsterId: number,
     deadAt: number
+}
+
+export interface CommChatMessage {
+    text: string;
 }

@@ -7,6 +7,7 @@ import ElevatorManager from "./elevatorManager";
 import RaftManager from "./raftManager";
 import PlayerManager from "./playerManager";
 import XY from "./xy";
+import ChatUi from "./chatUi";
 
 const resizer = () =>
   ((document.querySelector("#container") as HTMLElement).style.transform =
@@ -37,12 +38,12 @@ resizer();
     if (key === "ArrowDown") playerManager.pressedDown = false;
     if (key === "ArrowRight") playerManager.pressedRight = false;
     if (key === "ArrowLeft") playerManager.pressedLeft = false;
-
+/*
     if (key === "d") roomManager.moveRight();
     if (key === "a") roomManager.moveLeft();
     if (key === "w") roomManager.moveUp();
     if (key === "s") roomManager.moveDown();
-
+*/
     if (key === "z") playerManager.player.x -= 15;
     if (key === "v") playerManager.player.x += 15;
     if (key === "x") playerManager.player.y -= 15;

@@ -1,21 +1,24 @@
 import { range } from "./util";
 
 export default class PlayerCountMap {
+  mapRoomDivs: HTMLElement[] = [];
 
-    mapRoomDivs: HTMLElement[] = [];
+  constructor() {
+    const mapContainer = document.querySelector("#map");
+    range(48).forEach((idx) => {
+      const div = document.createElement("div");
+      mapContainer.appendChild(div);
+      this.mapRoomDivs[47 - idx] = div;
 
-    constructor() {
-        const mapContainer=document.querySelector('#map');
-        range(48).forEach(idx => {
-            const div = document.createElement('div');
-            mapContainer.appendChild(div);
-            this.mapRoomDivs[47-idx]=div;
-        });
-    }
+      if (idx % 8 === 7) {
+        mapContainer.appendChild(document.createElement("br"));
+      }
+    });
+  }
 
-    updateMap(peopleInRooms: number[]) {
-        peopleInRooms.forEach((amount, idx) => {
-            this.mapRoomDivs[idx].innerHTML=''+(amount || '');
-        });
-    }
+  updateMap(peopleInRooms: number[]) {
+    peopleInRooms.forEach((amount, idx) => {
+      this.mapRoomDivs[idx].innerHTML = "" + (amount || "");
+    });
+  }
 }

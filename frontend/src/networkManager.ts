@@ -5,7 +5,8 @@ import PlayerCountMap from "./playerCountMap";
 import XY from "./xy";
 
 import {
-    CommChannels,
+  CommChannels,
+  CommChatMessage,
   CommEventNames,
   CommInitInfo,
   CommMap,
@@ -15,11 +16,13 @@ import {
   CommRemoveOtherPlayerFromServer,
 } from "./../../commonTypes";
 import RoomManager from "./roomManager";
+import ChatUi from "./chatUi";
 
 export default class NetworkManager {
   public timeDiff: null | number = null;
 
   playerCountMap = new PlayerCountMap();
+  chatUi = new ChatUi(this);
 
   playersInRoom: { [key: string]: Dan } = {};
 
@@ -29,8 +32,8 @@ export default class NetworkManager {
   previousPlayerState = "";
   previousRoomNumber: number = -1;
 
-  private getSocket(channel: CommChannels, extra: number | string = '') {
-    return io(":1000"+channel+extra);
+  private getSocket(channel: CommChannels, extra: number | string = "") {
+    return io(":1000" + channel + extra);
   }
 
   constructor(private roomManager: RoomManager) {
@@ -46,13 +49,16 @@ export default class NetworkManager {
       this.globalSocket.on(CommEventNames.MapUpdate, (mapState: CommMap) => {
         this.playerCountMap.updateMap(mapState.playerCounts);
       });
-      this.globalSocket.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
-        this.roomManager.killMonster(
+      this.globalSocket.on(
+        CommEventNames.MonsterDeath,
+        (death: CommMonsterDeath) => {
+          this.roomManager.killMonster(
             death.roomNumber,
             death.monsterId,
             death.deadAt
-        );
-      })
+          );
+        }
+      );
     });
   }
 
@@ -85,6 +91,7 @@ export default class NetworkManager {
       // exit old room
       this.roomSocket?.connected && this.roomSocket.disconnect();
       this.removePlayersFromLocalClient();
+      this.chatUi.clearChat();
 
       // enter new room
       this.roomSocket = this.getSocket(CommChannels.RoomPrefix, roomNumber);
@@ -93,7 +100,6 @@ export default class NetworkManager {
       this.roomSocket.on(
         CommEventNames.PlayerStatusFromServer,
         (pl: CommPlayerStateFromServer) => {
-
           // don't update itself
           if (this.roomSocket.id === pl.id) {
             return;
@@ -130,6 +136,11 @@ export default class NetworkManager {
           this.removePlayersFromLocalClient(id);
         }
       );
+
+      this.roomSocket.on(
+        CommEventNames.ChatMessage,
+        (chat: CommChatMessage) => this.chatUi.addLineToChat(chat.text)
+      )
     }
 
     if (this.roomSocket?.connected) {
@@ -137,13 +148,25 @@ export default class NetworkManager {
     }
   }
 
-  sendMonsterDeathToServer(roomNumber: number, monsterId: number, time: number) {
+  sendMonsterDeathToServer(
+    roomNumber: number,
+    monsterId: number,
+    time: number
+  ) {
     if (this.globalSocket?.connected) {
       this.globalSocket.emit(CommEventNames.MonsterDeath, {
         roomNumber,
         monsterId,
-        deadAt: time
+        deadAt: time,
       } as CommMonsterDeath);
+    }
+  }
+
+  sendChat(text: string) {
+    if (this.roomSocket?.connected) {
+      this.roomSocket.emit(CommEventNames.ChatMessage, {
+        text,
+      } as CommChatMessage);
     }
   }
 

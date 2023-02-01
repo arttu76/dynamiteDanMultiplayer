@@ -8,7 +8,8 @@ import {
   CommPlayerStateFromPlayer,
   CommPlayerStateFromServer,
   CommRemoveOtherPlayerFromServer,
-  CommMonsterDeath
+  CommMonsterDeath,
+  CommChatMessage
 } from "./../../commonTypes";
 
 const app = express();
@@ -36,13 +37,13 @@ const io = require("socket.io")(1000, {
 app.get("/", (_, res) => res.redirect("http://localhost:9000"));
 
 const global = io.of(CommChannels.Global);
-global.on("connection", (socketOnGlobal) => {
-  socketOnGlobal.on(CommEventNames.Initialize, (_, callback) =>
+global.on("connection", (socketForGlobal) => {
+  socketForGlobal.on(CommEventNames.Initialize, (_, callback) =>
     callback({
       serverTime: Date.now(),
     } as CommInitInfo)
   );
-  socketOnGlobal.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
+  socketForGlobal.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
     global.emit(CommEventNames.MonsterDeath, death);
   });
 });
@@ -54,47 +55,59 @@ const updateGlobalPlayerCount = () => {
 
 range(48).forEach((roomNumber) => {
   const roomSpecific = io.of(CommChannels.RoomPrefix + roomNumber);
-  roomSpecific.on("connection", (socket) => {
+  roomSpecific.on("connection", (socketForRoom) => {
     playersInRooms[roomNumber].push({
-      socket,
+      socket: socketForRoom,
       player: null,
     } as PlayerInRoom);
     updateGlobalPlayerCount();
 
-    console.log("/room" + roomNumber + " " + socket.id + " connected");
+    console.log("/room" + roomNumber + " " + socketForRoom.id + " connected");
 
     // tell about other playes
     playersInRooms[roomNumber]
-      .filter((sp) => sp.socket.id !== socket.id)
+      .filter((sp) => sp.socket.id !== socketForRoom.id)
       .forEach((sp) =>
-        socket.emit(CommEventNames.PlayerStatusFromServer, {
+        socketForRoom.emit(CommEventNames.PlayerStatusFromServer, {
           ...newestPlayerStates[sp.socket.id],
           id: sp.socket.id,
         } as CommPlayerStateFromServer)
       );
 
-    socket.on("disconnect", () => {
-      console.log("/room" + roomNumber + " " + socket.id + " disconnected");
+    socketForRoom.on("disconnect", () => {
+      console.log("/room" + roomNumber + " " + socketForRoom.id + " disconnected");
       playersInRooms[roomNumber] = playersInRooms[roomNumber].filter(
         (sp) => sp.socket.connected
       );
       roomSpecific.emit(CommEventNames.PlayerRemove, {
-        id: socket.id,
+        id: socketForRoom.id,
       } as CommRemoveOtherPlayerFromServer);
-      delete newestPlayerStates[socket.id];
+      delete newestPlayerStates[socketForRoom.id];
       updateGlobalPlayerCount();
     });
 
-    socket.on(
+    socketForRoom.on(
       CommEventNames.PlayerUpdateFromClient,
       (playerState: CommPlayerStateFromPlayer) => {
-        newestPlayerStates[socket.id] = playerState;
+        newestPlayerStates[socketForRoom.id] = playerState;
         roomSpecific.emit(CommEventNames.PlayerStatusFromServer, {
           ...playerState,
-          id: socket.id,
+          id: socketForRoom.id,
         } as CommPlayerStateFromServer);
       }
     );
+
+    socketForRoom.on(
+        CommEventNames.ChatMessage,
+        (chat: CommChatMessage) => {
+            console.log("received chat message "+chat.text);
+            roomSpecific.emit(
+                CommEventNames.ChatMessage,
+                chat
+            );
+        }
+    )
+
   });
 });
 

@@ -16,22 +16,31 @@ html, body {
     position: absolute;
     top: 5px;
     left: 5px;
-    border-top: 1px solid grey;
-    border-left: 1px solid grey;
-    height: 120px;
-    width: 160px;
+    line-height: 0;
 }
 #map div {
     overflow: hidden;
-    border-bottom: 1px solid grey;
-    border-right: 1px solid grey;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    color: white;
     width: 19px;
     height: 19px;
-    line-height: 19px;
+    line-height: 21px;
     display: inline-block;
     text-align: center;
-    color: white;
     font-family: Arial, Helvetica, sans-serif;
+    margin: 0 0 1px 1px;
+}
+
+#chat {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    color: rgba(192, 192, 192,0.5);
+    font-weight: 100;
+}
+#chat div:nth-child(even) {
+    color: rgba(255,255,255,0.5);
 }
 
 #container {
