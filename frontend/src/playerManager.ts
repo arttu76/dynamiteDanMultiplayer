@@ -2,21 +2,17 @@ import Dan from "./dan";
 import DrawSurface from "./drawSurface";
 import ColorAttribute from "./colorAttribute";
 
-import * as ROM from "./rom";
 import { range, h, d, b } from "./util";
 import XY from "./xy";
 import RoomManager from "./roomManager";
 import TeleporterManager from "./teleportManager";
-import ElevatorManager from "./elevatorManager";
+import NetworkManager from "./networkManager";
 
 const danWidthInChars = 3;
 const danHeightInChars = 4;
 // annoyingly the dan sprite is not 4 chars
 // (32 pixels) tall, but 32-3 = 29 pixels tall
 const danHeightDeficiencyInPixels = 4;
-const danDataSize =
-  danWidthInChars * (danHeightInChars * 8 - danHeightDeficiencyInPixels);
-const danColor = new ColorAttribute(5, 0, false);
 
 const danCollisionFrame = new DrawSurface(new XY(0,0), danWidthInChars*8, danHeightInChars*8, true, false);
 range(danHeightInChars*8-danHeightDeficiencyInPixels-4).forEach(y => {
@@ -24,9 +20,9 @@ range(danHeightInChars*8-danHeightDeficiencyInPixels-4).forEach(y => {
   danCollisionFrame.plotByte(new XY(8, y+2), 0b11100000, new ColorAttribute(3, 0, false));  
 });
 
-export default class DanManager {
+export default class PlayerManager {
   player: Dan;
-  others: Dan[];
+  others: any;
 
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
@@ -37,55 +33,11 @@ export default class DanManager {
     initialDanPosition: XY,
     private roomManager: RoomManager,
     private teleporterManager: TeleporterManager,
-    private elevatorManager: ElevatorManager
+    private networkManager: NetworkManager
   ) {
     this.roomManager = roomManager;
-    this.others = [];
-
-    const frames = this.parseDanFrames();
-    this.player = new Dan(
-      initialDanPosition,
-      true,
-      0,
-      frames.rightFacingFrames,
-      frames.leftFacingFrames
-    );
-
-    /* uncomment to view dan frames
-    [...frames.leftFacingFrames,
-      ...frames.rightFacingFrames,
-    ]
-      .forEach(
-      (f, idx) => f.setStyle({"opacity": "1", "border": "1px solid blue", "z-index": "2000" }).setPosition(new XY(idx*30, 10)).show()
-    );
-    danCollisionFrame.setStyle({"opacity": "1", "border": "1px solid red", "z-index": "2000" }).setPosition(new XY(30*7, 10)).show()
-     */
-  }
-
-
-  private parseDanFrames(): {
-    rightFacingFrames: DrawSurface[];
-    leftFacingFrames: DrawSurface[];
-  } {
-    const grabFrames = (offsetHex: string, pixelOffsets: number[]) =>
-      range(4).map(
-        (index) =>
-          new DrawSurface(
-            new XY(0, 0),
-            danWidthInChars * 8,
-            danHeightInChars * 8,
-            true,
-            false,
-            danColor,
-            ROM.copy(d(offsetHex) + danDataSize * index, danDataSize),
-            pixelOffsets[index] // pixel data for dan is not left-aligned
-          )
-      );
-
-    return {
-      rightFacingFrames: grabFrames("633A", [-2, -4, -6, -8]),
-      leftFacingFrames: grabFrames("648A", [-4, -6, -8, -10]),
-    };
+    this.others = {}; // key=socket id, value=dan object
+    this.player = new Dan(initialDanPosition);
   }
 
   private updatePlayer(time: number): void {
@@ -218,17 +170,28 @@ export default class DanManager {
         8 * 19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;
       this.roomManager.moveUp();
     }
+
+    this.networkManager.sendPlayerStatusToServer(
+      this.player,
+      this.roomManager.getRoomIndex()
+    );
   }
 
-  private updateOthers() {}
-
   update(time: number): void {
-    this.updateOthers();
     this.updatePlayer(time);
-    this.roomManager.updateMonsterCollisions(
+    const justDiedMonsters = this.roomManager.updateMonsterCollisionsAndGetHitMonsters(
       this.player.getCurrentFrame(),
       time
     );
+
+    justDiedMonsters.forEach(
+      m => this.networkManager.sendMonsterDeathToServer(
+        this.roomManager.getRoomIndex(),
+        m.id,
+        time
+      )
+    );
+
     this.teleporterManager.teleportPlayerIfRequired(this.player);
   }
 }

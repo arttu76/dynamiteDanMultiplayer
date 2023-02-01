@@ -1,0 +1,24 @@
+{
+  "name": "ddm-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --build",
+    "buildAndWatch": "tsc --build --watch --preserveWatchOutput",
+    "runServer": "pm2-runtime dist/server.js --ignore-watch src --watch --source-map-support",
+    "dev": "touch dist/server.js && tsc --build && concurrently \"npm:buildAndWatch\" \"npm:runServer\""
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "concurrently": "^7.6.0",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pm2": "^5.2.2",
+    "socket.io": "^4.5.4"
+  }
+}

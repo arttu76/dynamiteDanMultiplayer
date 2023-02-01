@@ -82,11 +82,27 @@ export default class RoomManager {
     this.getCurrentMonsters().forEach((m) => m.update(time));
   }
 
-  updateMonsterCollisions(player: DrawSurface, time: number): void {
-    this.getCurrentMonsters()
+  updateMonsterCollisionsAndGetHitMonsters(player: DrawSurface, time: number): Monster[] {
+    const justDiedMonsters = this.getCurrentMonsters()
       .filter((m) => !m.isDead(time))
-      .filter((m) => m.isInCollisionWith(player))
-      .forEach((m) => (m.diedAt = time));
+      .filter((m) => m.isInCollisionWith(player));
+
+    justDiedMonsters.forEach((m) => (m.diedAt = time));
+    return justDiedMonsters;
+  }
+
+  killMonster(
+    roomNumber: number,
+    monsterId: number,
+    wantedDeadAt: number,
+  ): void {
+    if (this.getRoomIndex() !== roomNumber) {
+      return;
+    }
+    const victim = this.getCurrentMonsters().find(m => m.id===monsterId);
+    if (victim && wantedDeadAt > victim.diedAt) {
+      victim.diedAt = wantedDeadAt;
+    }
   }
 
   public getRoomIndex(forXY?: XY) {
@@ -272,8 +288,8 @@ export default class RoomManager {
   private parseMonstersFromRom(roomNumber: number): Monster[] {
     let monsterPointer = ROM.pointer(this.getRoomData(roomNumber), 7);
 
-    // only parse monsters for initial room so there's not shitloads of debug logging
-    //if (h(roomNumber) !== "2b") return [];
+    // only parse monsters for specific room only so there's not shitloads of debug logging
+    // if (roomNumber !== 44) return [];
 
     const vertical1Id = ROM.peek(monsterPointer++);
     const vertical2Id = ROM.peek(monsterPointer++);
@@ -295,77 +311,87 @@ export default class RoomManager {
         return [];
       }
 
-      return range(amount).map(() => {
-        /*
-        console.log("monster dump from " + h(monsterPointer));
-        ROM.hexDump(monsterPointer, 8, [
-          "x",
-          "y",
-          "min",
-          "max",
-          "flags",
-          "color",
-          "currentframe",
-          "maxframes",
-        ]);
-*/
-        const yCoordinate = ROM.peek(monsterPointer++);
-        const xCoordinate = ROM.peek(monsterPointer++);
-        const minVaryingCoordinate = ROM.peek(monsterPointer++);
-        const maxVaryingCoordinate = ROM.peek(monsterPointer++);
-        const flags = ROM.peek(monsterPointer++);
-        const color = new ColorAttribute(ROM.peek(monsterPointer++));
-        monsterPointer++; // "current frame" in the ROM is ignored
-        const maxFrames = ROM.peek(monsterPointer++);
+      return range(amount)
+        .map(() => {
+          const yCoordinate = ROM.peek(monsterPointer++);
+          const xCoordinate = ROM.peek(monsterPointer++);
+          const minVaryingCoordinate = ROM.peek(monsterPointer++);
+          const maxVaryingCoordinate = ROM.peek(monsterPointer++);
 
-        const spritePointerBase = d("AE60") + spriteId * 2;
-        let spriteDataLocation =
-          ROM.peek(spritePointerBase) + (ROM.peek(spritePointerBase + 1) << 8);
+          const flags = ROM.peek(monsterPointer++);
 
-        const spriteSize = ROM.peek(spriteDataLocation++);
-        const spriteWidthInChars = spriteSize & 0b11;
-        const spriteHeightInChars = (spriteSize & 0b11111100) >> 2;
+          const color = new ColorAttribute(ROM.peek(monsterPointer++));
+          const currentFrame = ROM.peek(monsterPointer++); // "current frame" in the ROM is ignored
 
-        /*
-        console.log(
-          "Monster id: " +
-            spriteId +
-            " flags:" +
-            b(flags) +
-            " FRAMES:" +
-            maxFrames
-        );
-        */
+          const maxFrames = ROM.peek(monsterPointer++);
+          const fast = !(maxFrames & 0b10);
 
-        const spriteDataSize = spriteWidthInChars * spriteHeightInChars * 8;
-        const frames = range(maxFrames).map(
-          (frameIndex) =>
-            new DrawSurface(
-              new XY(xCoordinate, yCoordinate),
-              spriteWidthInChars * 8,
-              spriteHeightInChars * 8,
-              true,
-              false,
-              color,
-              ROM.copy(
-                spriteDataLocation + spriteDataSize * frameIndex,
-                spriteDataSize
+          const spritePointerBase = d("AE60") + spriteId * 2;
+          let spriteDataLocation =
+            ROM.peek(spritePointerBase) +
+            (ROM.peek(spritePointerBase + 1) << 8);
+
+          const spriteSize = ROM.peek(spriteDataLocation++);
+          const spriteWidthInChars = spriteSize & 0b11;
+          const spriteHeightInChars = (spriteSize & 0b11111100) >> 2;
+
+          /*
+          console.log(
+            "Monster id: " +
+              spriteId +
+              ":" +
+              {
+                5: "computer",
+                25: "face   ",
+                23: "spring ",
+                51: "heli   ",
+              }[spriteId] +
+              "\tflags:" +
+              b(flags) +
+              " FRAMES:" +
+              b(maxFrames) +
+              " => " +
+              { 5: 2, 25: 2, 23: 4, 51: 4 }[spriteId] +
+              " <= " +
+              " currentframe:" +
+              currentFrame +
+              " fast=" +
+              fast
+          );
+          */
+
+          const spriteOneFrameDataSize =
+            spriteWidthInChars * spriteHeightInChars * 8;
+          const frames = range(maxFrames).map(
+            (frameIndex) =>
+              new DrawSurface(
+                new XY(xCoordinate, yCoordinate),
+                spriteWidthInChars * 8,
+                spriteHeightInChars * 8,
+                true,
+                false,
+                color,
+                ROM.copy(
+                  spriteDataLocation + spriteOneFrameDataSize * frameIndex,
+                  spriteOneFrameDataSize
+                )
               )
-            )
-        );
+          );
 
-        // console.log("************ end data location " + h(spriteDataLocation));
+          // console.log("************ end data location " + h(spriteDataLocation));
 
-        return new Monster(
-          horizontal,
-          xCoordinate,
-          yCoordinate,
-          minVaryingCoordinate,
-          maxVaryingCoordinate,
-          frames,
-          !!(flags & 0b1)
-        );
-      });
+          return new Monster(
+            horizontal,
+            fast,
+            xCoordinate,
+            yCoordinate,
+            minVaryingCoordinate,
+            maxVaryingCoordinate,
+            frames,
+            !!(flags & 0b10)
+          );
+        })
+        .filter((monster) => monster !== null);
     };
 
     return [

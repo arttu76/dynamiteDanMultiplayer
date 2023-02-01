@@ -9,5 +9,10 @@
     "allowJs": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
-  }
+  },
+  "references": [
+    {
+      "path": "../"
+    }
+  ]
 }

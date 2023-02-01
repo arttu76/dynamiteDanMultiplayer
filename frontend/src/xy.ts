@@ -14,4 +14,8 @@ export default class XY {
   getInverse() {
     return new XY(-this.x, -this.y);
   }
+
+  getCopy() {
+    return new XY(this.x, this.y);
+  }
 }

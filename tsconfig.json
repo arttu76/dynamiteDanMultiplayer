@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".", // if out path for a file is same as its src path, nothing will be emitted
+    "resolveJsonModule": true,
+    "composite": true
+  },
+  "files": [         // by whitelisting the files to include, TS won't automatically
+    "commonTypes.ts"   // include all source below root, which is the default.
+  ]
+}

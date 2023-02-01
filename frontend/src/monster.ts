@@ -14,6 +14,7 @@ export default class Monster extends XY {
   initialDiffOffset: number;
   currentFrame: number;
   horizontal: boolean;
+  fast: boolean;
   diffAmount: number;
   baseX: number;
   baseY: number;
@@ -22,6 +23,7 @@ export default class Monster extends XY {
 
   constructor(
     horizontal: boolean,
+    fast: boolean,
     x: number,
     y: number,
     minVaryingCoordinate: number,
@@ -33,6 +35,7 @@ export default class Monster extends XY {
     super(x * 8, y * 8);
 
     this.horizontal = horizontal;
+    this.fast = fast;
 
     this.diffAmount = (maxVaryingCoordinate + 1 - minVaryingCoordinate) * 8;
 
@@ -84,7 +87,7 @@ export default class Monster extends XY {
     const tick = Math.round((time / 1000) * 15);
 
     const totalCurrentDiff =
-      (this.initialDiffOffset + tick) % (this.diffAmount * 2);
+      (this.initialDiffOffset + tick * (this.fast ? 2: 1)) % (this.diffAmount * 2);
     const goingBack = totalCurrentDiff >= this.diffAmount;
     const halfCurrentDiff = totalCurrentDiff % this.diffAmount;
 
@@ -102,7 +105,7 @@ export default class Monster extends XY {
     }
 
     this.frames[this.currentFrame].hide();
-    this.currentFrame = tick % this.frames.length;
+    this.currentFrame = Math.floor(tick / 2) % this.frames.length;
     this.frames[this.currentFrame].setPosition(new XY(this.x, this.y)).show();
 
     this.frames.forEach((f) =>
