@@ -64,7 +64,7 @@ export default class Monster extends XY {
   }
 
   show() {
-    this.frames.forEach((f) => f.attachToHtml().show().setStyle({ "z-index": "2000 "}));
+    this.frames.forEach((f) => f.attachToHtml().setStyle({ "z-index": "2000 "}));
   }
 
   hide() {
