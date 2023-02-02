@@ -76,7 +76,6 @@ Communication goes like this:
  - walking on trampolines
  - fix too few animation frames parsed from rom
  - lasers
- - make it actually look like something (=less ugly)
  - name/rename players
 ### Backend
  - backend with golang

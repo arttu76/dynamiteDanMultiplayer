@@ -20,12 +20,14 @@ export default class ChatUi {
       }
       event.stopPropagation();
     });
-    this.chatContainer.appendChild(input);
+    const containerInnerDiv=this.chatContainer.querySelector('div');
+    containerInnerDiv.appendChild(input);
+    containerInnerDiv.scrollTop = containerInnerDiv.scrollHeight;
     focus && input.focus();
   }
 
   clearChat() {
-    this.chatContainer.innerHTML = "";
+    this.chatContainer.innerHTML = "<div></div>";
     this.addInputToChat();
   }
 
@@ -40,7 +42,7 @@ export default class ChatUi {
 
     const line = document.createElement("div");
     line.innerHTML = text;
-    this.chatContainer.appendChild(line);
+    this.chatContainer.querySelector('div').appendChild(line);
 
     this.addInputToChat(wasFocused);
   }
