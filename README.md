@@ -63,6 +63,7 @@ Server stores couple of things in memory:
 Communication goes like this:
 | Channel | When server receives | What does the server do then? |
 | --- |---- | ----|
+| - | When server (re)starts | Send `CommEventNames.RequestClientReset` to everyone in the global channel - clients should fully reinitialize. |  
 | Global | New connection | Send `CommInitInfo` |
 | Global | `CommEventNames.MonsterDeath`| Store the monster death in memory and send the same message to everyone in the Global channel |
 | Room-specific | New connection | Add new player's socket into memory. Send list of player counts to everyone (`CommEventNames.MapUpdate`) in the global channel. Send every other player's into the room (`CommEventNames.PlayerStatusFromServer` / `CommPlayerStateFromServer`). Broadcast all `CommMonsterDeaths` related to this room into the global channel (`CommEventNames.MonsterDeath`) |

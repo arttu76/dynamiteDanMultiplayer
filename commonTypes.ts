@@ -6,6 +6,7 @@ export enum CommChannels {
 export enum CommEventNames {
     Initialize = 'i',
     MapUpdate = 'm',
+    RequestClientReset = '!',
     PlayerUpdateFromClient = 'u',
     PlayerStatusFromServer = 'p',
     PlayerRemove = 'r',

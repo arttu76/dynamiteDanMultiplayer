@@ -12,20 +12,33 @@ import ChatUi from "./chatUi";
 const resizer = () =>
   ((document.querySelector("#container") as HTMLElement).style.transform =
     "scale(" +
-    Math.min(window.innerWidth / 256, window.innerHeight / (192-4*8)) +
+    Math.min(window.innerWidth / 256, window.innerHeight / (192 - 4 * 8)) +
     ")");
 addEventListener("resize", resizer);
 resizer();
 
 (async function () {
-  const roomManager = new RoomManager(new XY(4, 5)); // proper start location 3,5
+  const parseUrlOr = (
+    param: string,
+    pos: number,
+    defaultValue: number
+  ): number => {
+    const match = location.search.match(
+      new RegExp("[?&]" + param + "=([0-9]+),([0-9]+)")
+    );
+    return match ? parseInt(match[pos+1], 10) : defaultValue;
+  };
+
+  const roomManager = new RoomManager(
+    new XY(parseUrlOr("room", 0, 3), parseUrlOr("room", 1, 5))
+  );
   const networkManager = new NetworkManager(roomManager);
   const teleporterManager = new TeleporterManager(roomManager);
   const elevatorManager = new ElevatorManager(roomManager);
   const raftManager = new RaftManager(roomManager);
 
   const playerManager = new PlayerManager(
-    new XY(130, 20), // proper start location 130, 20
+    new XY(parseUrlOr("xy", 0, 130), parseUrlOr("xy", 1, 20)),
     roomManager,
     teleporterManager,
     networkManager
@@ -38,7 +51,7 @@ resizer();
     if (key === "ArrowDown") playerManager.pressedDown = false;
     if (key === "ArrowRight") playerManager.pressedRight = false;
     if (key === "ArrowLeft") playerManager.pressedLeft = false;
-/*
+    /*
     if (key === "d") roomManager.moveRight();
     if (key === "a") roomManager.moveLeft();
     if (key === "w") roomManager.moveUp();
@@ -58,11 +71,9 @@ resizer();
   });
 
   setInterval(() => {
-    const time = Date.now() - (
-      networkManager.timeDiff===null
-      ? 0
-      : networkManager.timeDiff
-      );
+    const time =
+      Date.now() -
+      (networkManager.timeDiff === null ? 0 : networkManager.timeDiff);
     roomManager.updateMonsters(time);
     teleporterManager.updateTeleporter(time);
     elevatorManager.updateElevator(time);

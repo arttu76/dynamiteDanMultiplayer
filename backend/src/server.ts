@@ -16,12 +16,7 @@ const app = express();
 
 const range = (maxExclusive: number) => Array.from(Array(maxExclusive).keys());
 
-interface PlayerInRoom {
-  socket: Socket;
-  player: string;
-}
-
-const playersInRooms: PlayerInRoom[][] = range(48).map(() => []);
+const socketsByRooms: Socket[][] = range(48).map(() => []);
 const newestPlayerStates: { [key: string]: CommPlayerStateFromPlayer } = {};
 
 let monsterDeaths: CommMonsterDeath[] = [];
@@ -53,43 +48,40 @@ global.on("connection", (socketForGlobal) => {
 });
 const updateGlobalPlayerCount = () => {
   global.emit(CommEventNames.MapUpdate, {
-    playerCounts: playersInRooms.map((players) => players.length),
+    playerCounts: socketsByRooms.map((sockets) => sockets.length),
   } as CommMap);
 };
 
 range(48).forEach((roomNumber) => {
   const roomSpecific = io.of(CommChannels.RoomPrefix + roomNumber);
   roomSpecific.on("connection", (socketForRoom) => {
-    playersInRooms[roomNumber].push({
-      socket: socketForRoom,
-      player: null,
-    } as PlayerInRoom);
+    socketsByRooms[roomNumber].push(socketForRoom);
     updateGlobalPlayerCount();
 
     console.log("/room" + roomNumber + " " + socketForRoom.id + " connected");
 
     // tell about other players
-    playersInRooms[roomNumber]
+    socketsByRooms[roomNumber]
       // don't tell about ourselves & tell only players we know something about
-      .filter((sp) => sp.socket.id !== socketForRoom.id && sp.player)
-      .forEach((sp) =>
+      .filter((playerSocket) => playerSocket.id !== socketForRoom.id)
+      .forEach((playerSocket) =>
         socketForRoom.emit(CommEventNames.PlayerStatusFromServer, {
-          ...newestPlayerStates[sp.socket.id],
-          id: sp.socket.id,
+          ...newestPlayerStates[playerSocket.id],
+          id: playerSocket.id,
         } as CommPlayerStateFromServer)
       );
 
     // broadcast monster deaths for this room
     monsterDeaths
-        .filter(md => md.roomNumber===roomNumber)  
-        .forEach(md => global.emit(CommEventNames.MonsterDeath, md));
+      .filter((md) => md.roomNumber === roomNumber)
+      .forEach((md) => global.emit(CommEventNames.MonsterDeath, md));
 
     socketForRoom.on("disconnect", () => {
       console.log(
         "/room" + roomNumber + " " + socketForRoom.id + " disconnected"
       );
-      playersInRooms[roomNumber] = playersInRooms[roomNumber].filter(
-        (sp) => sp.socket.connected
+      socketsByRooms[roomNumber] = socketsByRooms[roomNumber].filter(
+        (playerSocket) => playerSocket.connected
       );
       roomSpecific.emit(CommEventNames.PlayerRemove, {
         id: socketForRoom.id,
@@ -110,7 +102,6 @@ range(48).forEach((roomNumber) => {
     );
 
     socketForRoom.on(CommEventNames.ChatMessage, (chat: CommChatMessage) => {
-      console.log("received chat message " + chat.text);
       roomSpecific.emit(CommEventNames.ChatMessage, chat);
     });
   });
@@ -118,4 +109,12 @@ range(48).forEach((roomNumber) => {
 
 app.listen(55080);
 
-console.log("Server started at " + new Date());
+console.log(
+  "Server started at " +
+    new Date() +
+    ", requesting clients to do full reset in a sec..."
+);
+setTimeout(() => {
+  console.log("Requesting full client reset NOW!");
+  global.emit(CommEventNames.RequestClientReset);
+}, 5000);

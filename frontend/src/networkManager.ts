@@ -46,6 +46,10 @@ export default class NetworkManager {
           this.timeDiff = Date.now() - initReply.serverTime;
         }
       );
+      this.globalSocket.on(CommEventNames.RequestClientReset, () => {
+        console.log("Full reload requested by server!");
+        location.reload();
+      });
       this.globalSocket.on(CommEventNames.MapUpdate, (mapState: CommMap) => {
         this.playerCountMap.updateMap(mapState.playerCounts);
       });
