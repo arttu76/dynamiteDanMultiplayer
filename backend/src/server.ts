@@ -9,7 +9,7 @@ import {
   CommPlayerStateFromServer,
   CommRemoveOtherPlayerFromServer,
   CommMonsterDeath,
-  CommChatMessage
+  CommChatMessage,
 } from "./../../commonTypes";
 
 const app = express();
@@ -24,8 +24,7 @@ interface PlayerInRoom {
 const playersInRooms: PlayerInRoom[][] = range(48).map(() => []);
 const newestPlayerStates: { [key: string]: CommPlayerStateFromPlayer } = {};
 
-// index = roomn number, content=array of latest monster death timestamps
-const monsterDeaths: number[][] = range(48).map(() => []);
+let monsterDeaths: CommMonsterDeath[] = [];
 
 const io = require("socket.io")(1000, {
   cors: {
@@ -44,6 +43,11 @@ global.on("connection", (socketForGlobal) => {
     } as CommInitInfo)
   );
   socketForGlobal.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
+    monsterDeaths = monsterDeaths.filter(
+      (md) =>
+        md.roomNumber !== death.roomNumber || md.monsterId !== death.monsterId
+    );
+    monsterDeaths.push(death);
     global.emit(CommEventNames.MonsterDeath, death);
   });
 });
@@ -64,9 +68,10 @@ range(48).forEach((roomNumber) => {
 
     console.log("/room" + roomNumber + " " + socketForRoom.id + " connected");
 
-    // tell about other playes
+    // tell about other players
     playersInRooms[roomNumber]
-      .filter((sp) => sp.socket.id !== socketForRoom.id)
+      // don't tell about ourselves & tell only players we know something about
+      .filter((sp) => sp.socket.id !== socketForRoom.id && sp.player)
       .forEach((sp) =>
         socketForRoom.emit(CommEventNames.PlayerStatusFromServer, {
           ...newestPlayerStates[sp.socket.id],
@@ -74,8 +79,15 @@ range(48).forEach((roomNumber) => {
         } as CommPlayerStateFromServer)
       );
 
+    // broadcast monster deaths for this room
+    monsterDeaths
+        .filter(md => md.roomNumber===roomNumber)  
+        .forEach(md => global.emit(CommEventNames.MonsterDeath, md));
+
     socketForRoom.on("disconnect", () => {
-      console.log("/room" + roomNumber + " " + socketForRoom.id + " disconnected");
+      console.log(
+        "/room" + roomNumber + " " + socketForRoom.id + " disconnected"
+      );
       playersInRooms[roomNumber] = playersInRooms[roomNumber].filter(
         (sp) => sp.socket.connected
       );
@@ -97,17 +109,10 @@ range(48).forEach((roomNumber) => {
       }
     );
 
-    socketForRoom.on(
-        CommEventNames.ChatMessage,
-        (chat: CommChatMessage) => {
-            console.log("received chat message "+chat.text);
-            roomSpecific.emit(
-                CommEventNames.ChatMessage,
-                chat
-            );
-        }
-    )
-
+    socketForRoom.on(CommEventNames.ChatMessage, (chat: CommChatMessage) => {
+      console.log("received chat message " + chat.text);
+      roomSpecific.emit(CommEventNames.ChatMessage, chat);
+    });
   });
 });
 
