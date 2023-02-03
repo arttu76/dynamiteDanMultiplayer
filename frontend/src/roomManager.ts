@@ -323,8 +323,8 @@ export default class RoomManager {
           const color = new ColorAttribute(ROM.peek(monsterPointer++));
           const currentFrame = ROM.peek(monsterPointer++); // "current frame" in the ROM is ignored
 
-          const maxFrames = ROM.peek(monsterPointer++);
-          const fast = !(maxFrames & 0b10);
+          const maxFrames = horizontal ? 4 : 2; ROM.peek(monsterPointer++);
+          const fast = !!(flags & 0b10000000);
 
           const spritePointerBase = d("AE60") + spriteId * 2;
           let spriteDataLocation =
@@ -334,31 +334,6 @@ export default class RoomManager {
           const spriteSize = ROM.peek(spriteDataLocation++);
           const spriteWidthInChars = spriteSize & 0b11;
           const spriteHeightInChars = (spriteSize & 0b11111100) >> 2;
-
-          /*
-          console.log(
-            "Monster id: " +
-              spriteId +
-              ":" +
-              {
-                5: "computer",
-                25: "face   ",
-                23: "spring ",
-                51: "heli   ",
-              }[spriteId] +
-              "\tflags:" +
-              b(flags) +
-              " FRAMES:" +
-              b(maxFrames) +
-              " => " +
-              { 5: 2, 25: 2, 23: 4, 51: 4 }[spriteId] +
-              " <= " +
-              " currentframe:" +
-              currentFrame +
-              " fast=" +
-              fast
-          );
-          */
 
           const spriteOneFrameDataSize =
             spriteWidthInChars * spriteHeightInChars * 8;
@@ -377,8 +352,6 @@ export default class RoomManager {
                 )
               )
           );
-
-          // console.log("************ end data location " + h(spriteDataLocation));
 
           return new Monster(
             horizontal,

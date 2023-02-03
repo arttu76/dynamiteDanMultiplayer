@@ -84,10 +84,11 @@ export default class Monster extends XY {
   }
 
   update(time: number) {
-    const tick = Math.round((time / 1000) * 15);
+    const tickForMovement = Math.round((time / 1200) * 23);
+    const tickForAnimation = Math.round((time / 1200) * 25);
 
     const totalCurrentDiff =
-      (this.initialDiffOffset + tick * (this.fast ? 2: 1)) % (this.diffAmount * 2);
+      (this.initialDiffOffset + tickForMovement * (this.fast ? 1: 1)) % (this.diffAmount * 2);
     const goingBack = totalCurrentDiff >= this.diffAmount;
     const halfCurrentDiff = totalCurrentDiff % this.diffAmount;
 
@@ -105,7 +106,7 @@ export default class Monster extends XY {
     }
 
     this.frames[this.currentFrame].hide();
-    this.currentFrame = Math.floor(tick / 2) % this.frames.length;
+    this.currentFrame = Math.floor(tickForAnimation / 2) % this.frames.length;
     this.frames[this.currentFrame].setPosition(new XY(this.x, this.y)).show();
 
     this.frames.forEach((f) =>

@@ -17,8 +17,9 @@ export default class PlayerCountMap {
   }
 
   updateMap(peopleInRooms: number[]) {
-    peopleInRooms.forEach((amount, idx) => {
+    peopleInRooms.forEach((amount, idx) => {      
       this.mapRoomDivs[idx].innerHTML = "" + (amount || "");
+      this.mapRoomDivs[idx].style.opacity = amount ? '0.5' : '0.25';
     });
   }
 }

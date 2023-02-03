@@ -5,6 +5,7 @@ html, body {
     width: 100vw;
     height: 100vh;
     background: #000;
+    overflow: hidden;
 }
 
 #map {
@@ -57,6 +58,10 @@ html, body {
 #chat div div:nth-child(even) {
     color: rgba(255,255,255,0.75);
 }
+#chat div div.special {
+    font-style: italic;
+    color: #ccc;
+}
 #chat div div:last-of-type {
     padding-bottom: 30px;
 }
@@ -78,7 +83,6 @@ html, body {
     left: 0;
     height: 160px;
     width: 256px;
-    transform-origin: center;
     image-rendering: pixelated;
     overflow: hidden;
 }
