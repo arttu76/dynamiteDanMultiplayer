@@ -12,8 +12,9 @@ const roomsPerFloor = 8;
 
 const ladderUdgIds = [
   150, // regular ladder (2 chars wide)
-  99, // another regular ladder (2 chars wide)
   98, // top of ladder (2 chars wide)
+  99, // another regular ladder (2 chars wide)
+  100, // bottom of ladder (2 chars wide)
   25, // zeppelin propeller (one char wide)
 ];
 
@@ -220,6 +221,8 @@ export default class RoomManager {
       }
     } while (ROM.peek(udgPointer) !== 255);
 
+    room.flushDebugTexts();
+
     return { room, ladderCollisionMap };
   }
 
@@ -258,6 +261,11 @@ export default class RoomManager {
         })
       )
     );
+
+    if(location.search.includes("debugUdg")) {
+      room.addDebugText("" + udgId, xy.getMultiplied(8).getOffset(-4, -4));
+    }
+
   }
 
   private isTouchingLadderCollisionMap(player: Dan, offset: XY) {

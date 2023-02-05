@@ -18,4 +18,10 @@ export default class XY {
   getCopy() {
     return new XY(this.x, this.y);
   }
+
+  getMultiplied(multiplier: number) {
+    return new XY(this.x*multiplier, this.y*multiplier);
+  }
+
+
 }

@@ -136,6 +136,16 @@ export default class PlayerManager {
           this.player.y++;
         }
       }
+
+      // going down on ladder
+      if (
+        this.pressedDown &&
+        !this.pressedJump &&
+        this.roomManager.isOnTopOfLadder(this.player) &&
+        !collidesWithRoom(new XY(0, 1))
+      ) {
+        this.player.move(new XY(0, 1));
+      }
     }
 
     this.player

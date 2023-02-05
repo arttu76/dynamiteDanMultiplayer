@@ -35,6 +35,8 @@ export default class DrawSurface extends XY {
   noInkIsTransparent: boolean;
   customCollisionMap: boolean[][] | null;
 
+  debugTexts: { text: string; xyPixelLocation: XY }[];
+
   public flippedHorizontally: boolean;
 
   constructor(
@@ -68,7 +70,9 @@ export default class DrawSurface extends XY {
 
     this.pixels = initializeArray(1, false);
     this.attribs = initializeArray(8, null);
-    this.customCollisionMap = customCollisionMap ? initializeArray(1, false) : null;
+    this.customCollisionMap = customCollisionMap
+      ? initializeArray(1, false)
+      : null;
 
     this.canvasRenderingContext2D = this.canvas.getContext("2d", {
       alpha: true,
@@ -91,6 +95,8 @@ export default class DrawSurface extends XY {
 
     this.attachToHtml().hide();
     this.setPosition(position);
+
+    this.debugTexts = [];
   }
 
   show(): DrawSurface {
@@ -126,10 +132,10 @@ export default class DrawSurface extends XY {
     if (pixel || !this.noInkIsTransparent) {
       this.canvasRenderingContext2D.fillRect(xy.x, xy.y, 1, 1);
     }
-      
+
     this.pixels[xy.y][xy.x] = pixel;
 
-    if (this.customCollisionMap && customCollisionPixel!==null) {
+    if (this.customCollisionMap && customCollisionPixel !== null) {
       this.customCollisionMap[xy.y][xy.x] = customCollisionPixel;
     }
   }
@@ -145,11 +151,12 @@ export default class DrawSurface extends XY {
 
     this.attribs[attribY][attribX] = attribute;
 
-    const plotBit = (location: XY, mask: number, offset: number) => this.plot(
+    const plotBit = (location: XY, mask: number, offset: number) =>
+      this.plot(
         location.getOffset(offset, 0),
         !!(byte & mask),
         attribute,
-        customCollisionByte===null ? null : !!(customCollisionByte & mask)
+        customCollisionByte === null ? null : !!(customCollisionByte & mask)
       );
 
     plotBit(xyPixelLocation, 128, 0);
@@ -160,6 +167,21 @@ export default class DrawSurface extends XY {
     plotBit(xyPixelLocation, 4, 5);
     plotBit(xyPixelLocation, 2, 6);
     plotBit(xyPixelLocation, 1, 7);
+  }
+
+  addDebugText(text: string, xyPixelLocation: XY) {
+    this.debugTexts.push({ text, xyPixelLocation });
+  }
+
+  flushDebugTexts() {
+    const c = this.canvasRenderingContext2D;
+    c.font = "11px Arial";
+    c.fillStyle = "#fff";
+
+    this.debugTexts.forEach((dt) =>
+      c.fillText(dt.text, dt.xyPixelLocation.x + 4, dt.xyPixelLocation.y+ 4)
+    );
+    this.debugTexts = [];
   }
 
   setAttribute(attributeLocation: XY, color: ColorAttribute) {
