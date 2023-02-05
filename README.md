@@ -74,7 +74,6 @@ Communication goes like this:
 ## TODO
 ### Frontend
  - walking on trampolines
- - fix too few animation frames parsed from rom
  - lasers
  - name/rename players
 ### Backend
