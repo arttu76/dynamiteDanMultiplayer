@@ -138,6 +138,7 @@ export default class PlayerManager {
 
       const isOnStableGround =
         isOnBasicRoom ||
+        this.roomManager.isOnTopOfAThingThatCanBeStoodOn(this.player) ||
         this.roomManager.isOnTopOfLadder(this.player) ||
         isOnTopOfTrampoline;
 

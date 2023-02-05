@@ -16,6 +16,12 @@ const colorHacks: { [key: number]: ColorAttribute } = {
   134: new ColorAttribute(2, 0, false),
 };
 
+// tiles that can be stood on but don't block sideways or upward movement
+const canBeStoodOnUdgIds = [
+  107, // big two char magenta V
+  64, // small magenta V
+];
+
 const ladderUdgIds = [
   25, // zeppelin propeller (one char wide)
   150, // regular ladder (2 chars wide)
@@ -31,6 +37,7 @@ const trampolineUdgIds = [
 ];
 
 const nonCollisionUdgIds = [
+  ...canBeStoodOnUdgIds,
   ...ladderUdgIds,
   ...trampolineUdgIds,
   132, // zeppelin left top
@@ -43,6 +50,7 @@ const nonCollisionUdgIds = [
 export default class RoomManager {
   currentRoom: XY;
   rooms: DrawSurface[] = [];
+  canBeStoodOnCollisionMaps: DrawSurface[] = [];
   ladderCollisionMaps: DrawSurface[] = [];
   trampolineCollisionMaps: DrawSurface[] = [];
   monsters: Monster[][] = [];
@@ -50,13 +58,15 @@ export default class RoomManager {
   constructor(initialRoom: XY) {
     range(roomsPerFloor * floors)
       .map((num) => this.initializeRoom(num))
-      .forEach((roomAndLaddersAndMonsters, roomNumber) => {
-        this.rooms[roomNumber] = roomAndLaddersAndMonsters.room;
+      .forEach((roomAndCollisionMapsAndMonsters, roomNumber) => {
+        this.rooms[roomNumber] = roomAndCollisionMapsAndMonsters.room;
+        this.canBeStoodOnCollisionMaps[roomNumber] =
+          roomAndCollisionMapsAndMonsters.canBeStoodOnCollisionMap;
         this.ladderCollisionMaps[roomNumber] =
-          roomAndLaddersAndMonsters.ladderCollisionMap;
+          roomAndCollisionMapsAndMonsters.ladderCollisionMap;
         this.trampolineCollisionMaps[roomNumber] =
-          roomAndLaddersAndMonsters.trampolineCollisionMap;
-        this.monsters[roomNumber] = roomAndLaddersAndMonsters.monsters;
+          roomAndCollisionMapsAndMonsters.trampolineCollisionMap;
+        this.monsters[roomNumber] = roomAndCollisionMapsAndMonsters.monsters;
       });
 
     this.moveToRoom(initialRoom); // original starting position: 3,5
@@ -166,6 +176,7 @@ export default class RoomManager {
     room: DrawSurface;
     ladderCollisionMap: DrawSurface;
     trampolineCollisionMap: DrawSurface;
+    canBeStoodOnCollisionMap: DrawSurface;
     monsters: Monster[];
   } {
     const parsedRoom = this.parseRoomFromRom(roomNumber);
@@ -173,12 +184,14 @@ export default class RoomManager {
       room: parsedRoom.room,
       ladderCollisionMap: parsedRoom.ladderCollisionMap,
       trampolineCollisionMap: parsedRoom.trampolineCollisionMap,
+      canBeStoodOnCollisionMap: parsedRoom.canBeStoodOnCollisionMap,
       monsters: this.parseMonstersFromRom(roomNumber),
     };
   }
 
   private parseRoomFromRom(roomNumber: number): {
     room: DrawSurface;
+    canBeStoodOnCollisionMap: DrawSurface;
     ladderCollisionMap: DrawSurface;
     trampolineCollisionMap: DrawSurface;
   } {
@@ -186,11 +199,12 @@ export default class RoomManager {
 
     const room = new DrawSurface(new XY(0, 0), 256, 160, false, true);
 
-    const getEmptySpecialMap = () =>
+    const getEmptyCollisionMap = () =>
       new DrawSurface(new XY(0, 0), 256, 160, true, false);
 
-    const ladderCollisionMap = getEmptySpecialMap();
-    const trampolineCollisionMap = getEmptySpecialMap();
+    const canBeStoodOnCollisionMap = getEmptyCollisionMap();
+    const ladderCollisionMap = getEmptyCollisionMap();
+    const trampolineCollisionMap = getEmptyCollisionMap();
 
     const addToSpecialCollisionMapsIfRequired = (udgId: number, xy: XY) => {};
 
@@ -217,6 +231,7 @@ export default class RoomManager {
         for (let i = 0; i < repeat; i++) {
           this.drawUdg(
             room,
+            canBeStoodOnCollisionMap,
             ladderCollisionMap,
             trampolineCollisionMap,
             xy,
@@ -227,6 +242,7 @@ export default class RoomManager {
       } else {
         this.drawUdg(
           room,
+          canBeStoodOnCollisionMap,
           ladderCollisionMap,
           trampolineCollisionMap,
           new XY(x, y),
@@ -237,11 +253,17 @@ export default class RoomManager {
 
     room.flushDebugTexts();
 
-    return { room, ladderCollisionMap, trampolineCollisionMap };
+    return {
+      room,
+      canBeStoodOnCollisionMap,
+      ladderCollisionMap,
+      trampolineCollisionMap,
+    };
   }
 
   private drawUdg(
     room: DrawSurface,
+    canBeStoodOnCollisionMap: DrawSurface,
     ladderCollisionMap: DrawSurface,
     trampolineCollisionMap: DrawSurface,
     xy: XY,
@@ -284,21 +306,20 @@ export default class RoomManager {
               : 0
           );
 
-          if (ladderUdgIds.includes(udgId)) {
-            ladderCollisionMap.plotByte(
+          const drawBlockIfMatchingUdg = (
+            udgIdList: number[],
+            ds: DrawSurface
+          ) =>
+            udgIdList.includes(udgId) &&
+            ds.plotByte(
               pixelLocation,
               255,
               new ColorAttribute(7, 0, false) // doesn't actually matter
             );
-          }
 
-          if (trampolineUdgIds.includes(udgId)) {
-            trampolineCollisionMap.plotByte(
-              pixelLocation,
-              255,
-              new ColorAttribute(7, 0, false) // doesn't actually matter
-            );
-          }
+          drawBlockIfMatchingUdg(canBeStoodOnUdgIds, canBeStoodOnCollisionMap);
+          drawBlockIfMatchingUdg(ladderUdgIds, ladderCollisionMap);
+          drawBlockIfMatchingUdg(trampolineUdgIds, trampolineCollisionMap);
         })
       )
     );
@@ -333,6 +354,17 @@ export default class RoomManager {
     return this.isTouchingCollisionMap(this.ladderCollisionMaps, player);
   }
 
+  isOnTopOfAThingThatCanBeStoodOn(player: Dan): boolean {
+    return (
+      !this.isTouchingCollisionMap(this.canBeStoodOnCollisionMaps, player) &&
+      this.isTouchingCollisionMap(
+        this.canBeStoodOnCollisionMaps,
+        player,
+        new XY(0, 1)
+      )
+    );
+  }
+
   isOnTopOfLadder(player: Dan): boolean {
     return (
       !this.isInLadder(player) &&
@@ -357,7 +389,7 @@ export default class RoomManager {
 
   private parseMonstersFromRom(roomNumber: number): Monster[] {
     let monsterPointer = ROM.pointer(this.getRoomData(roomNumber), 7);
-    
+
     const vertical1Id = ROM.peek(monsterPointer++);
     const vertical2Id = ROM.peek(monsterPointer++);
     const horizontal1Id = ROM.peek(monsterPointer++);
