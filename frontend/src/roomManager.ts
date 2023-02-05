@@ -6,9 +6,14 @@ import { range, h, d, b } from "./util";
 import Monster from "./monster";
 import XY from "./xy";
 import Dan from "./dan";
+import Laser from "./laser";
 
 const floors = 6;
 const roomsPerFloor = 8;
+
+const laserTurretCharWidth = 2;
+const laserLeftSideUdgId = 164;
+const laserRightSideUdgId = 165;
 
 // manually tweaked graphics, key=udgId, value=special color
 const colorHacks: { [key: number]: ColorAttribute } = {
@@ -54,19 +59,23 @@ export default class RoomManager {
   ladderCollisionMaps: DrawSurface[] = [];
   trampolineCollisionMaps: DrawSurface[] = [];
   monsters: Monster[][] = [];
+  lasers: Laser[][] = [];
 
   constructor(initialRoom: XY) {
     range(roomsPerFloor * floors)
       .map((num) => this.initializeRoom(num))
-      .forEach((roomAndCollisionMapsAndMonsters, roomNumber) => {
-        this.rooms[roomNumber] = roomAndCollisionMapsAndMonsters.room;
+      .forEach((roomAndCollisionMapsAndMonstersAndLasers, roomNumber) => {
+        this.rooms[roomNumber] = roomAndCollisionMapsAndMonstersAndLasers.room;
         this.canBeStoodOnCollisionMaps[roomNumber] =
-          roomAndCollisionMapsAndMonsters.canBeStoodOnCollisionMap;
+          roomAndCollisionMapsAndMonstersAndLasers.canBeStoodOnCollisionMap;
         this.ladderCollisionMaps[roomNumber] =
-          roomAndCollisionMapsAndMonsters.ladderCollisionMap;
+          roomAndCollisionMapsAndMonstersAndLasers.ladderCollisionMap;
         this.trampolineCollisionMaps[roomNumber] =
-          roomAndCollisionMapsAndMonsters.trampolineCollisionMap;
-        this.monsters[roomNumber] = roomAndCollisionMapsAndMonsters.monsters;
+          roomAndCollisionMapsAndMonstersAndLasers.trampolineCollisionMap;
+        this.monsters[roomNumber] =
+          roomAndCollisionMapsAndMonstersAndLasers.monsters;
+        this.lasers[roomNumber] =
+          roomAndCollisionMapsAndMonstersAndLasers.lasers;
       });
 
     this.moveToRoom(initialRoom); // original starting position: 3,5
@@ -107,6 +116,12 @@ export default class RoomManager {
 
   updateMonsters(time: number): void {
     this.getCurrentMonsters().forEach((m) => m.update(time));
+  }
+
+  updateLasers(time: number): void {
+    this.lasers[this.getRoomIndex()].forEach((l) =>
+      l.updateBeam(this.getCurrentRoom(), time)
+    );
   }
 
   updateMonsterCollisionsAndGetHitMonsters(
@@ -178,6 +193,7 @@ export default class RoomManager {
     trampolineCollisionMap: DrawSurface;
     canBeStoodOnCollisionMap: DrawSurface;
     monsters: Monster[];
+    lasers: Laser[];
   } {
     const parsedRoom = this.parseRoomFromRom(roomNumber);
     return {
@@ -185,6 +201,7 @@ export default class RoomManager {
       ladderCollisionMap: parsedRoom.ladderCollisionMap,
       trampolineCollisionMap: parsedRoom.trampolineCollisionMap,
       canBeStoodOnCollisionMap: parsedRoom.canBeStoodOnCollisionMap,
+      lasers: parsedRoom.lasers,
       monsters: this.parseMonstersFromRom(roomNumber),
     };
   }
@@ -194,6 +211,7 @@ export default class RoomManager {
     canBeStoodOnCollisionMap: DrawSurface;
     ladderCollisionMap: DrawSurface;
     trampolineCollisionMap: DrawSurface;
+    lasers: Laser[];
   } {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
@@ -208,10 +226,20 @@ export default class RoomManager {
 
     const addToSpecialCollisionMapsIfRequired = (udgId: number, xy: XY) => {};
 
+    const laserLeftSideLocations: XY[] = [];
+    const laserRightSideLocations: XY[] = [];
+
     do {
       const y = ROM.peek(udgPointer++);
       const x = ROM.peek(udgPointer++);
       const id = ROM.peek(udgPointer++);
+
+      if (id === laserLeftSideUdgId) {
+        laserLeftSideLocations.push(new XY(x, y));
+      }
+      if (id === laserRightSideUdgId) {
+        laserRightSideLocations.push(new XY(x, y));
+      }
 
       if (ROM.peek(udgPointer) > 250 && ROM.peek(udgPointer) < 255) {
         const direction = ROM.peek(udgPointer++);
@@ -253,11 +281,30 @@ export default class RoomManager {
 
     room.flushDebugTexts();
 
+    // find matching closest right side lasers for left side lasers
+    const lasers = laserLeftSideLocations.reduce((acc, leftXy) => {
+      const closestRightXy = laserRightSideLocations
+        .filter((rightXy) => rightXy.y === leftXy.y)
+        .filter((rightXy) => leftXy.x < rightXy.x)
+        .sort((a, b) => b.x - a.x);
+      return closestRightXy.length
+        ? [
+            ...acc,
+            new Laser(
+              leftXy.x + laserTurretCharWidth,
+              leftXy.y,
+              closestRightXy[0].x - leftXy.x - laserTurretCharWidth
+            ),
+          ]
+        : acc;
+    }, []);
+
     return {
       room,
       canBeStoodOnCollisionMap,
       ladderCollisionMap,
       trampolineCollisionMap,
+      lasers,
     };
   }
 

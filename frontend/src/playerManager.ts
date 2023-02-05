@@ -2,7 +2,7 @@ import Dan from "./dan";
 import DrawSurface from "./drawSurface";
 import ColorAttribute from "./colorAttribute";
 
-import { range, h, d, b } from "./util";
+import { range } from "./util";
 import XY from "./xy";
 import RoomManager from "./roomManager";
 import TeleporterManager from "./teleportManager";

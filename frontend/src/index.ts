@@ -107,7 +107,9 @@ addEventListener("resize", resizer);
     const time =
       Date.now() -
       (networkManager.timeDiff === null ? 0 : networkManager.timeDiff);
+
     roomManager.updateMonsters(time);
+    roomManager.updateLasers(time);
     teleporterManager.updateTeleporter(time);
     elevatorManager.updateElevator(time);
     raftManager.updateRaft(time);

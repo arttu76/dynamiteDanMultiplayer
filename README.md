@@ -66,14 +66,14 @@ Communication goes like this:
 | - | When server (re)starts | Send `CommEventNames.RequestClientReset` to everyone in the global channel - clients should fully reinitialize. |  
 | Global | New connection | Send `CommInitInfo` |
 | Global | `CommEventNames.MonsterDeath`| Store the monster death in memory and send the same message to everyone in the Global channel |
-| Room-specific | New connection | Add new player's socket into memory. Send list of player counts to everyone (`CommEventNames.MapUpdate`) in the global channel. Send every other player's into the room (`CommEventNames.PlayerStatusFromServer` / `CommPlayerStateFromServer`). Broadcast all `CommMonsterDeaths` related to this room into the global channel (`CommEventNames.MonsterDeath`) |
+| Room-specific | New connection | Add new player's socket into memory. Send list of player counts to everyone (`CommEventNames.MapUpdate`) in the global channel. Send every other player's info who is in the same room (`CommEventNames.PlayerStatusFromServer` / `CommPlayerStateFromServer`) into the room-specific channel. Broadcast all `CommMonsterDeaths` related to this room into the global channel (`CommEventNames.MonsterDeath`) |
 | Room-specific | Disconnection | Remove that player/socket from memory. Send `CommEventNames.PlayerRemove` / `CommRemoveOtherPlayerFromServer` to the room-specific channel. Send list of player counts to everyone (`CommEventNames.MapUpdate`) in the global channel. |
 | Room-specific | `CommEventNames.PlayerUpdateFromClient` | Update newest player states. Emit `CommEventNames.PlayerStatusFromServer`/ `CommPlayerStateFromServer`to everyone in the room-specific channel. |
 | Room-specific | `CommEventNames.ChatMessage`| Emit `CommEventNames.ChatMessage`/ `CommChatMessage`to everyone in the room-specific channel |
 
 ## TODO
 ### Frontend
- - lasers
+ - "float tubes"
  - name/rename players
 ### Backend
  - backend with golang
