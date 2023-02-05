@@ -175,7 +175,7 @@ export default class DrawSurface extends XY {
 
   flushDebugTexts() {
     const c = this.canvasRenderingContext2D;
-    c.font = "11px Arial";
+    c.font = "8px Arial";
     c.fillStyle = "#fff";
 
     this.debugTexts.forEach((dt) =>

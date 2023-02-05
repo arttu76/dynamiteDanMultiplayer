@@ -10,16 +10,29 @@ import Dan from "./dan";
 const floors = 6;
 const roomsPerFloor = 8;
 
+// manually tweaked graphics, key=udgId, value=special color
+const colorHacks: { [key: number]: ColorAttribute } = {
+  132: new ColorAttribute(2, 0, false),
+  134: new ColorAttribute(2, 0, false),
+};
+
 const ladderUdgIds = [
+  25, // zeppelin propeller (one char wide)
   150, // regular ladder (2 chars wide)
   98, // top of ladder (2 chars wide)
   99, // another regular ladder (2 chars wide)
   100, // bottom of ladder (2 chars wide)
-  25, // zeppelin propeller (one char wide)
+];
+
+const trampolineUdgIds = [
+  76, // small three-char trampoline, like on the starting screen
+  176, // dotted "clothers hanger" type trampolines
+  14, // flast solid line trampolines
 ];
 
 const nonCollisionUdgIds = [
   ...ladderUdgIds,
+  ...trampolineUdgIds,
   132, // zeppelin left top
   133, // zeppeling left bottom
   134, // zeppelin right top
@@ -31,6 +44,7 @@ export default class RoomManager {
   currentRoom: XY;
   rooms: DrawSurface[] = [];
   ladderCollisionMaps: DrawSurface[] = [];
+  trampolineCollisionMaps: DrawSurface[] = [];
   monsters: Monster[][] = [];
 
   constructor(initialRoom: XY) {
@@ -40,6 +54,8 @@ export default class RoomManager {
         this.rooms[roomNumber] = roomAndLaddersAndMonsters.room;
         this.ladderCollisionMaps[roomNumber] =
           roomAndLaddersAndMonsters.ladderCollisionMap;
+        this.trampolineCollisionMaps[roomNumber] =
+          roomAndLaddersAndMonsters.trampolineCollisionMap;
         this.monsters[roomNumber] = roomAndLaddersAndMonsters.monsters;
       });
 
@@ -83,7 +99,10 @@ export default class RoomManager {
     this.getCurrentMonsters().forEach((m) => m.update(time));
   }
 
-  updateMonsterCollisionsAndGetHitMonsters(player: DrawSurface, time: number): Monster[] {
+  updateMonsterCollisionsAndGetHitMonsters(
+    player: DrawSurface,
+    time: number
+  ): Monster[] {
     const justDiedMonsters = this.getCurrentMonsters()
       .filter((m) => !m.isDead(time))
       .filter((m) => m.isInCollisionWith(player));
@@ -95,12 +114,12 @@ export default class RoomManager {
   killMonster(
     roomNumber: number,
     monsterId: number,
-    wantedDeadAt: number,
+    wantedDeadAt: number
   ): void {
     if (this.getRoomIndex() !== roomNumber) {
       return;
     }
-    const victim = this.getCurrentMonsters().find(m => m.id===monsterId);
+    const victim = this.getCurrentMonsters().find((m) => m.id === monsterId);
     if (victim && wantedDeadAt > victim.diedAt) {
       victim.diedAt = wantedDeadAt;
     }
@@ -146,12 +165,14 @@ export default class RoomManager {
   private initializeRoom(roomNumber: number): {
     room: DrawSurface;
     ladderCollisionMap: DrawSurface;
+    trampolineCollisionMap: DrawSurface;
     monsters: Monster[];
   } {
     const parsedRoom = this.parseRoomFromRom(roomNumber);
     return {
       room: parsedRoom.room,
       ladderCollisionMap: parsedRoom.ladderCollisionMap,
+      trampolineCollisionMap: parsedRoom.trampolineCollisionMap,
       monsters: this.parseMonstersFromRom(roomNumber),
     };
   }
@@ -159,32 +180,19 @@ export default class RoomManager {
   private parseRoomFromRom(roomNumber: number): {
     room: DrawSurface;
     ladderCollisionMap: DrawSurface;
+    trampolineCollisionMap: DrawSurface;
   } {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
 
     const room = new DrawSurface(new XY(0, 0), 256, 160, false, true);
 
-    const ladderCollisionMap = new DrawSurface(
-      new XY(0, 0),
-      256,
-      160,
-      true,
-      false
-    );
+    const getEmptySpecialMap = () =>
+      new DrawSurface(new XY(0, 0), 256, 160, true, false);
 
-    const addToLadderCharCollosionMapIfRequired = (udgId: number, xy: XY) => {
-      if (ladderUdgIds.includes(udgId)) {
-        range(8).forEach((y) =>
-          range(udgId === 25 ? 1 : 2).forEach((x) =>
-            ladderCollisionMap.plotByte(
-              new XY(xy.x * 8 + x * 8, xy.y * 8 + y),
-              255,
-              new ColorAttribute(7, 0, false) // doesn't actually matter
-            )
-          )
-        );
-      }
-    };
+    const ladderCollisionMap = getEmptySpecialMap();
+    const trampolineCollisionMap = getEmptySpecialMap();
+
+    const addToSpecialCollisionMapsIfRequired = (udgId: number, xy: XY) => {};
 
     do {
       const y = ROM.peek(udgPointer++);
@@ -197,11 +205,7 @@ export default class RoomManager {
         const repeat = ROM.peek(udgPointer++);
 
         let xDir =
-          direction === 254
-            ? 1
-            : direction === 252 || direction === 251
-            ? 1
-            : 0;
+          direction === 254 || direction === 252 || direction === 251 ? 1 : 0;
         let yDir =
           direction === 253 || direction === 251
             ? -1
@@ -211,22 +215,38 @@ export default class RoomManager {
 
         let xy = new XY(x, y);
         for (let i = 0; i < repeat; i++) {
-          this.drawUdg(room, xy, id);
-          addToLadderCharCollosionMapIfRequired(id, xy);
+          this.drawUdg(
+            room,
+            ladderCollisionMap,
+            trampolineCollisionMap,
+            xy,
+            id
+          );
           xy = xy.getOffset(xDir * skip, yDir * skip);
         }
       } else {
-        this.drawUdg(room, new XY(x, y), id);
-        addToLadderCharCollosionMapIfRequired(id, new XY(x, y));
+        this.drawUdg(
+          room,
+          ladderCollisionMap,
+          trampolineCollisionMap,
+          new XY(x, y),
+          id
+        );
       }
     } while (ROM.peek(udgPointer) !== 255);
 
     room.flushDebugTexts();
 
-    return { room, ladderCollisionMap };
+    return { room, ladderCollisionMap, trampolineCollisionMap };
   }
 
-  private drawUdg(room: DrawSurface, xy: XY, udgId: number) {
+  private drawUdg(
+    room: DrawSurface,
+    ladderCollisionMap: DrawSurface,
+    trampolineCollisionMap: DrawSurface,
+    xy: XY,
+    udgId: number
+  ) {
     const udgIndex = d("6C46") + udgId * 2;
     let udgPointer = ROM.pointer([ROM.peek(udgIndex), ROM.peek(udgIndex + 1)]);
 
@@ -248,33 +268,60 @@ export default class RoomManager {
           const udgGraphicsByte = ROM.peek(
             udgPointer + udgX + row * width * 8 + udgY * width
           );
+
+          const pixelLocation = new XY(
+            xy.x * 8 + udgX * 8,
+            xy.y * 8 + row * -8 + udgY
+          );
+
           room.plotByte(
-            new XY(xy.x * 8 + udgX * 8, xy.y * 8 + row * -8 + udgY),
+            pixelLocation,
             udgGraphicsByte,
-            udgId === 132 || udgId === 134 // color hack tweak for zeppelin girders
-              ? new ColorAttribute(2, 0, false)
-              : new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
+            colorHacks[udgId] ||
+              new ColorAttribute(colors[udgX + Math.floor(udgY / 8) * width]),
             !nonCollisionUdgIds.includes(udgId) && udgGraphicsByte
               ? 0b11111111
               : 0
           );
+
+          if (ladderUdgIds.includes(udgId)) {
+            ladderCollisionMap.plotByte(
+              pixelLocation,
+              255,
+              new ColorAttribute(7, 0, false) // doesn't actually matter
+            );
+          }
+
+          if (trampolineUdgIds.includes(udgId)) {
+            trampolineCollisionMap.plotByte(
+              pixelLocation,
+              255,
+              new ColorAttribute(7, 0, false) // doesn't actually matter
+            );
+          }
         })
       )
     );
 
-    if(location.search.includes("debugUdg")) {
-      room.addDebugText("" + udgId, xy.getMultiplied(8).getOffset(-4, -4));
+    if (location.search.includes("debugUdg")) {
+      room.addDebugText(
+        "" + udgId,
+        xy.getMultiplied(8).getOffset(-4, (xy.x % 2) * -6)
+      );
     }
-
   }
 
-  private isTouchingLadderCollisionMap(player: Dan, offset: XY) {
+  private isTouchingCollisionMap(
+    collisionMapList: DrawSurface[],
+    player: Dan,
+    offset: XY = new XY(0, 0)
+  ) {
     const playerFrame = player.getCurrentFrame();
 
     playerFrame.setPosition(new XY(player.x + offset.x, player.y + offset.y));
 
     const result = playerFrame.isInCollisionWith(
-      this.ladderCollisionMaps[this.getRoomIndex()]
+      collisionMapList[this.getRoomIndex()]
     );
 
     playerFrame.setPosition(new XY(player.x - offset.x, player.y - offset.y));
@@ -283,22 +330,34 @@ export default class RoomManager {
   }
 
   isInLadder(player: Dan): boolean {
-    return this.isTouchingLadderCollisionMap(player, new XY(0, 0));
+    return this.isTouchingCollisionMap(this.ladderCollisionMaps, player);
   }
 
   isOnTopOfLadder(player: Dan): boolean {
     return (
       !this.isInLadder(player) &&
-      this.isTouchingLadderCollisionMap(player, new XY(0, 1))
+      this.isTouchingCollisionMap(
+        this.ladderCollisionMaps,
+        player,
+        new XY(0, 1)
+      )
+    );
+  }
+
+  isOnTopOfTrampoline(player: Dan): boolean {
+    return (
+      !this.isTouchingCollisionMap(this.trampolineCollisionMaps, player) &&
+      this.isTouchingCollisionMap(
+        this.trampolineCollisionMaps,
+        player,
+        new XY(0, 1)
+      )
     );
   }
 
   private parseMonstersFromRom(roomNumber: number): Monster[] {
     let monsterPointer = ROM.pointer(this.getRoomData(roomNumber), 7);
-
-    // only parse monsters for specific room only so there's not shitloads of debug logging
-    // if (roomNumber !== 44) return [];
-
+    
     const vertical1Id = ROM.peek(monsterPointer++);
     const vertical2Id = ROM.peek(monsterPointer++);
     const horizontal1Id = ROM.peek(monsterPointer++);
@@ -331,7 +390,8 @@ export default class RoomManager {
           const color = new ColorAttribute(ROM.peek(monsterPointer++));
           const currentFrame = ROM.peek(monsterPointer++); // "current frame" in the ROM is ignored
 
-          const maxFrames = horizontal ? 4 : 2; ROM.peek(monsterPointer++);
+          const maxFrames = horizontal ? 4 : 2;
+          ROM.peek(monsterPointer++);
           const fast = !!(flags & 0b10000000);
 
           const spritePointerBase = d("AE60") + spriteId * 2;

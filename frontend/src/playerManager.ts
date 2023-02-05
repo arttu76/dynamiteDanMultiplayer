@@ -14,15 +14,29 @@ const danHeightInChars = 4;
 // (32 pixels) tall, but 32-3 = 29 pixels tall
 const danHeightDeficiencyInPixels = 4;
 
-const danCollisionFrame = new DrawSurface(new XY(0,0), danWidthInChars*8, danHeightInChars*8, true, false);
-range(danHeightInChars*8-danHeightDeficiencyInPixels-4).forEach(y => {
-  danCollisionFrame.plotByte(new XY(0, y+2), 0b01111111, new ColorAttribute(2, 0, false));  
-  danCollisionFrame.plotByte(new XY(8, y+2), 0b11100000, new ColorAttribute(3, 0, false));  
+const danCollisionFrame = new DrawSurface(
+  new XY(0, 0),
+  danWidthInChars * 8,
+  danHeightInChars * 8,
+  true,
+  false
+);
+range(danHeightInChars * 8 - danHeightDeficiencyInPixels - 4).forEach((y) => {
+  danCollisionFrame.plotByte(
+    new XY(0, y + 2),
+    0b01111111,
+    new ColorAttribute(2, 0, false)
+  );
+  danCollisionFrame.plotByte(
+    new XY(8, y + 2),
+    0b11100000,
+    new ColorAttribute(3, 0, false)
+  );
 });
 
 export default class PlayerManager {
   player: Dan;
-  others: any;
+  fallHeight = 0;
 
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
@@ -36,14 +50,17 @@ export default class PlayerManager {
     private networkManager: NetworkManager
   ) {
     this.roomManager = roomManager;
-    this.others = {}; // key=socket id, value=dan object
     this.player = new Dan(initialDanPosition);
   }
 
   private updatePlayer(time: number): void {
     const collidesWithRoom = (offset?: XY) => {
-      danCollisionFrame.setPosition(offset ? this.player.getOffset(offset.x, offset.y) : this.player);
-      return danCollisionFrame.isInCollisionWith(this.roomManager.getCurrentRoom());
+      danCollisionFrame.setPosition(
+        offset ? this.player.getOffset(offset.x, offset.y) : this.player
+      );
+      return danCollisionFrame.isInCollisionWith(
+        this.roomManager.getCurrentRoom()
+      );
     };
 
     const isInRoomWithWater = this.roomManager.getRoomXY().y === 0;
@@ -93,6 +110,7 @@ export default class PlayerManager {
       }
     }
 
+    // on ladder
     if (this.roomManager.isInLadder(this.player)) {
       if (
         this.pressedJump &&
@@ -110,14 +128,48 @@ export default class PlayerManager {
         this.player.move(new XY(0, 1));
       }
     } else {
-      const isOnStableGround =
-        collidesWithRoom(new XY(0, 1)) ||
-        this.roomManager.isOnTopOfLadder(this.player);
+      const isOnBasicRoom = collidesWithRoom(new XY(0, 1));
 
-      // initialize jump
-      if (this.pressedJump && isOnStableGround) {
-        this.player.jumpFrame = 1;
-        this.player.jumpMaxHeight = 26;
+      // have to include basic room in this check, because
+      // some basic room udgs are drawn on top of trampolines
+      // and we want those situations to be considered as "not on trampoline"
+      const isOnTopOfTrampoline =
+        !isOnBasicRoom && this.roomManager.isOnTopOfTrampoline(this.player);
+
+      const isOnStableGround =
+        isOnBasicRoom ||
+        this.roomManager.isOnTopOfLadder(this.player) ||
+        isOnTopOfTrampoline;
+
+      if (isOnStableGround && !isOnTopOfTrampoline) {
+        this.fallHeight = 0;
+      }
+
+      // bounce from trampoline?
+      if (isOnTopOfTrampoline) {
+        if (this.pressedJump) {
+          // jump even higher?
+          this.player.jumpFrame = 1;
+          this.player.jumpMaxHeight = Math.round(
+            Math.max(this.fallHeight * 2, 26)
+          );
+          this.fallHeight = 0;
+        } else {
+          // make smaller and smaller bounces automatically
+          this.player.jumpMaxHeight = Math.round(this.fallHeight / 2);
+          this.player.jumpFrame =
+            this.player.jumpMaxHeight > 1
+              ? 1 // bounce automatically
+              : 0; // don't bounce eventually
+          this.fallHeight = 0;
+        }
+      } else {
+        // initialize jump
+        if (this.pressedJump && isOnStableGround) {
+          this.player.jumpFrame = 1;
+          this.player.jumpMaxHeight = 26;
+          this.fallHeight = 0;
+        }
       }
 
       // if ...
@@ -134,6 +186,7 @@ export default class PlayerManager {
         if (!isOnStableGround && !collidesWithRoom(new XY(0, 1))) {
           this.player.jumpFrame = 0;
           this.player.y++;
+          this.fallHeight++;
         }
       }
 
@@ -189,13 +242,14 @@ export default class PlayerManager {
 
   update(time: number): void {
     this.updatePlayer(time);
-    const justDiedMonsters = this.roomManager.updateMonsterCollisionsAndGetHitMonsters(
-      this.player.getCurrentFrame(),
-      time
-    );
+    const justDiedMonsters =
+      this.roomManager.updateMonsterCollisionsAndGetHitMonsters(
+        this.player.getCurrentFrame(),
+        time
+      );
 
-    justDiedMonsters.forEach(
-      m => this.networkManager.sendMonsterDeathToServer(
+    justDiedMonsters.forEach((m) =>
+      this.networkManager.sendMonsterDeathToServer(
         this.roomManager.getRoomIndex(),
         m.id,
         time

@@ -73,7 +73,6 @@ Communication goes like this:
 
 ## TODO
 ### Frontend
- - walking on trampolines
  - lasers
  - name/rename players
 ### Backend
