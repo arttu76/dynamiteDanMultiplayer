@@ -65,6 +65,11 @@ export default class PlayerManager {
 
     const isInRoomWithWater = this.roomManager.getRoomXY().y === 0;
 
+    const isInFloater = this.roomManager.isInActiveFloaterArea(
+      this.player,
+      time
+    );
+
     this.player.getCurrentFrame().hide();
 
     // extra check for elevator
@@ -128,6 +133,10 @@ export default class PlayerManager {
         this.player.move(new XY(0, 1));
       }
     } else {
+      if (isInFloater && !collidesWithRoom(new XY(0, -1))) {
+        this.player.move(new XY(0, -1));
+      }
+
       const isOnBasicRoom = collidesWithRoom(new XY(0, 1));
 
       // have to include basic room in this check, because
@@ -137,10 +146,11 @@ export default class PlayerManager {
         !isOnBasicRoom && this.roomManager.isOnTopOfTrampoline(this.player);
 
       const isOnStableGround =
-        isOnBasicRoom ||
-        this.roomManager.isOnTopOfAThingThatCanBeStoodOn(this.player) ||
-        this.roomManager.isOnTopOfLadder(this.player) ||
-        isOnTopOfTrampoline;
+        !isInFloater &&
+        (isOnBasicRoom ||
+          this.roomManager.isOnTopOfAThingThatCanBeStoodOn(this.player) ||
+          this.roomManager.isOnTopOfLadder(this.player) ||
+          isOnTopOfTrampoline);
 
       if (isOnStableGround && !isOnTopOfTrampoline) {
         this.fallHeight = 0;
@@ -183,8 +193,12 @@ export default class PlayerManager {
         this.player.jumpFrame++;
         this.player.y--;
       } else {
-        // ... but otherwise fall down
-        if (!isOnStableGround && !collidesWithRoom(new XY(0, 1))) {
+        // ... but otherwise fall down (unless float floats up)
+        if (
+          !isInFloater &&
+          !isOnStableGround &&
+          !collidesWithRoom(new XY(0, 1))
+        ) {
           this.player.jumpFrame = 0;
           this.player.y++;
           this.fallHeight++;

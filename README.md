@@ -73,7 +73,6 @@ Communication goes like this:
 
 ## TODO
 ### Frontend
- - "float tubes"
  - name/rename players
 ### Backend
  - backend with golang

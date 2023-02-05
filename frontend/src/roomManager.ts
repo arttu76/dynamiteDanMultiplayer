@@ -6,10 +6,13 @@ import { range, h, d, b } from "./util";
 import Monster from "./monster";
 import XY from "./xy";
 import Dan from "./dan";
+import Floater from "./floater";
 import Laser from "./laser";
 
 const floors = 6;
 const roomsPerFloor = 8;
+
+const floaterLeftSideUdgId = 189;
 
 const laserTurretCharWidth = 2;
 const laserLeftSideUdgId = 164;
@@ -58,6 +61,8 @@ export default class RoomManager {
   canBeStoodOnCollisionMaps: DrawSurface[] = [];
   ladderCollisionMaps: DrawSurface[] = [];
   trampolineCollisionMaps: DrawSurface[] = [];
+  floaterCollisionMaps: DrawSurface[] = [];
+  floaters: Floater[][] = [];
   monsters: Monster[][] = [];
   lasers: Laser[][] = [];
 
@@ -72,6 +77,10 @@ export default class RoomManager {
           roomAndCollisionMapsAndMonstersAndLasers.ladderCollisionMap;
         this.trampolineCollisionMaps[roomNumber] =
           roomAndCollisionMapsAndMonstersAndLasers.trampolineCollisionMap;
+        this.floaterCollisionMaps[roomNumber] =
+          roomAndCollisionMapsAndMonstersAndLasers.floaterCollisionMap;
+        this.floaters[roomNumber] =
+          roomAndCollisionMapsAndMonstersAndLasers.floaters;
         this.monsters[roomNumber] =
           roomAndCollisionMapsAndMonstersAndLasers.monsters;
         this.lasers[roomNumber] =
@@ -122,6 +131,23 @@ export default class RoomManager {
     this.lasers[this.getRoomIndex()].forEach((l) =>
       l.updateBeam(this.getCurrentRoom(), time)
     );
+  }
+
+  isFloaterActive(time: number): boolean {
+    const floaterPhase = 30000;
+    return time % floaterPhase < floaterPhase / 3;
+  }
+
+  updateFloaters(time: number): void {
+    this.floaters[this.getRoomIndex()].forEach((f) =>
+      f.updateFloater(this.getCurrentRoom(), time, this.isFloaterActive(time))
+    );
+  }
+
+  isInActiveFloaterArea(player: Dan, time: number): boolean {
+    return this.isFloaterActive(time)
+      ? this.isTouchingCollisionMap(this.floaterCollisionMaps, player)
+      : false;
   }
 
   updateMonsterCollisionsAndGetHitMonsters(
@@ -192,6 +218,8 @@ export default class RoomManager {
     ladderCollisionMap: DrawSurface;
     trampolineCollisionMap: DrawSurface;
     canBeStoodOnCollisionMap: DrawSurface;
+    floaterCollisionMap: DrawSurface;
+    floaters: Floater[];
     monsters: Monster[];
     lasers: Laser[];
   } {
@@ -201,6 +229,8 @@ export default class RoomManager {
       ladderCollisionMap: parsedRoom.ladderCollisionMap,
       trampolineCollisionMap: parsedRoom.trampolineCollisionMap,
       canBeStoodOnCollisionMap: parsedRoom.canBeStoodOnCollisionMap,
+      floaterCollisionMap: parsedRoom.floaterCollisionMap,
+      floaters: parsedRoom.floaters,
       lasers: parsedRoom.lasers,
       monsters: this.parseMonstersFromRom(roomNumber),
     };
@@ -211,6 +241,8 @@ export default class RoomManager {
     canBeStoodOnCollisionMap: DrawSurface;
     ladderCollisionMap: DrawSurface;
     trampolineCollisionMap: DrawSurface;
+    floaterCollisionMap: DrawSurface;
+    floaters: Floater[];
     lasers: Laser[];
   } {
     let udgPointer = ROM.pointer(this.getRoomData(roomNumber), 0);
@@ -224,7 +256,8 @@ export default class RoomManager {
     const ladderCollisionMap = getEmptyCollisionMap();
     const trampolineCollisionMap = getEmptyCollisionMap();
 
-    const addToSpecialCollisionMapsIfRequired = (udgId: number, xy: XY) => {};
+    const floaterCollisionMap = getEmptyCollisionMap();
+    const floaters: Floater[] = [];
 
     const laserLeftSideLocations: XY[] = [];
     const laserRightSideLocations: XY[] = [];
@@ -255,6 +288,12 @@ export default class RoomManager {
             ? 1
             : 0;
 
+        if (id === floaterLeftSideUdgId) {
+          floaters.push(
+            new Floater(x, y + 1 - repeat, repeat, floaterCollisionMap)
+          );
+        }
+
         let xy = new XY(x, y);
         for (let i = 0; i < repeat; i++) {
           this.drawUdg(
@@ -262,6 +301,7 @@ export default class RoomManager {
             canBeStoodOnCollisionMap,
             ladderCollisionMap,
             trampolineCollisionMap,
+            floaterCollisionMap,
             xy,
             id
           );
@@ -273,6 +313,7 @@ export default class RoomManager {
           canBeStoodOnCollisionMap,
           ladderCollisionMap,
           trampolineCollisionMap,
+          floaterCollisionMap,
           new XY(x, y),
           id
         );
@@ -304,6 +345,8 @@ export default class RoomManager {
       canBeStoodOnCollisionMap,
       ladderCollisionMap,
       trampolineCollisionMap,
+      floaterCollisionMap,
+      floaters,
       lasers,
     };
   }
@@ -313,6 +356,7 @@ export default class RoomManager {
     canBeStoodOnCollisionMap: DrawSurface,
     ladderCollisionMap: DrawSurface,
     trampolineCollisionMap: DrawSurface,
+    floaterCollisionMap: DrawSurface,
     xy: XY,
     udgId: number
   ) {

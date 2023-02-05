@@ -110,6 +110,7 @@ addEventListener("resize", resizer);
 
     roomManager.updateMonsters(time);
     roomManager.updateLasers(time);
+    roomManager.updateFloaters(time);
     teleporterManager.updateTeleporter(time);
     elevatorManager.updateElevator(time);
     raftManager.updateRaft(time);
