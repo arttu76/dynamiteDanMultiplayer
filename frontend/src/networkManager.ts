@@ -8,12 +8,12 @@ import {
   CommChannels,
   CommChatMessage,
   CommEventNames,
-  CommInitInfo,
-  CommMap,
+  CommInitResponse,
   CommMonsterDeath,
   CommPlayerStateFromPlayer,
   CommPlayerStateFromServer,
   CommRemoveOtherPlayerFromServer,
+  CommPlayerGlobals,
 } from "./../../commonTypes";
 import RoomManager from "./roomManager";
 import ChatUi from "./chatUi";
@@ -24,6 +24,7 @@ export default class NetworkManager {
   playerCountMap = new PlayerCountMap();
   chatUi = new ChatUi(this);
 
+  localPlayerName = "";
   playersInRoom: { [key: string]: Dan } = {};
 
   globalSocket: Socket = null;
@@ -39,20 +40,23 @@ export default class NetworkManager {
   constructor(private roomManager: RoomManager) {
     this.globalSocket = this.getSocket(CommChannels.Global);
     this.globalSocket.on("connect", () => {
+      const updateGlobals = (globalState: CommPlayerGlobals) => {
+        this.playerCountMap.updateMap(globalState.playerCounts);
+      };
+
       this.globalSocket.emit(
         CommEventNames.Initialize,
         null,
-        (initReply: CommInitInfo) => {
+        (initReply: CommInitResponse) => {
           this.timeDiff = Date.now() - initReply.serverTime;
+          updateGlobals(initReply);
         }
       );
       this.globalSocket.on(CommEventNames.RequestClientReset, () => {
-        console.log("Full reload requested by server!");
         location.reload();
       });
-      this.globalSocket.on(CommEventNames.MapUpdate, (mapState: CommMap) => {
-        this.playerCountMap.updateMap(mapState.playerCounts);
-      });
+      this.globalSocket.on(CommEventNames.PlayerGlobalsUpdate, updateGlobals);
+
       this.globalSocket.on(
         CommEventNames.MonsterDeath,
         (death: CommMonsterDeath) => {
@@ -77,11 +81,14 @@ export default class NetworkManager {
   }
 
   sendPlayerStatusToServer(player: Dan, roomNumber: number) {
+    this.localPlayerName = player.name;
+
     const newState: CommPlayerStateFromPlayer = {
       x: player.x,
       y: player.y,
       facingLeft: player.facingLeft,
       frame: player.frame,
+      name: player.name,
     };
 
     // don't send if nothing changed
@@ -108,13 +115,13 @@ export default class NetworkManager {
           if (this.roomSocket.id === pl.id) {
             return;
           }
-
           // we don't know about this player? add it
           if (!this.playersInRoom[pl.id]) {
             this.playersInRoom[pl.id] = new Dan(
               new XY(pl.x, pl.y),
               pl.facingLeft,
-              pl.frame
+              pl.frame,
+              pl.name
             );
           }
 
@@ -122,7 +129,8 @@ export default class NetworkManager {
           this.playersInRoom[pl.id].setAllAttributes(
             new XY(pl.x, pl.y),
             pl.facingLeft,
-            pl.frame
+            pl.frame,
+            pl.name
           );
         }
       );
@@ -131,24 +139,27 @@ export default class NetworkManager {
         CommEventNames.PlayerRemove,
         (info: CommRemoveOtherPlayerFromServer) => {
           const id = info.id;
-
           // don't remove itself or player we know nothing about
           if (this.roomSocket.id === id || !this.playersInRoom[id]) {
             return;
           }
-
           this.removePlayersFromLocalClient(id);
         }
       );
 
       this.roomSocket.on(
         CommEventNames.ChatMessage,
-        (chat: CommChatMessage) => this.chatUi.addLineToChat(chat.text)
-      )
+        (chat: CommChatMessage) => {
+          this.chatUi.addLineToChat(chat.text, false);
+        }
+      );
     }
 
     if (this.roomSocket?.connected) {
       this.roomSocket.emit(CommEventNames.PlayerUpdateFromClient, newState);
+    } else {
+      // invalidate cache state, so we try to connect immediately again 
+      this.previousPlayerState = null;
     }
   }
 
@@ -166,12 +177,25 @@ export default class NetworkManager {
     }
   }
 
-  sendChat(text: string) {
-    if (this.roomSocket?.connected) {
-      this.roomSocket.emit(CommEventNames.ChatMessage, {
-        text,
-      } as CommChatMessage);
+  rename(newName: string) {
+    if (this.globalSocket?.connected) {
+      this.globalSocket.emit(CommEventNames.PlayerRenameRequest, newName);
     }
   }
 
+  sendChat(text: string): boolean {
+    if (!this.roomSocket?.connected) {
+      return false;
+    }
+
+    this.roomSocket.emit(CommEventNames.ChatMessage, {
+      text: this.localPlayerName + ": " + text,
+    } as CommChatMessage);
+
+    return true;
+  }
+
+  getTimeDiff(): number {
+    return this.timeDiff || 0;
+  }
 }

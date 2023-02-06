@@ -16,8 +16,10 @@ export default class ChatUi {
     input.addEventListener("keydown", (event) => event.stopPropagation());
     input.addEventListener("keyup", (event) => {
       if (event.key === "Enter" && input.value.trim()) {
-        this.networkManager.sendChat(input.value);
-        input.value = "";
+        const sentOk = this.networkManager.sendChat(input.value);
+        if (sentOk) {
+          input.value = "";
+        }
       }
       event.stopPropagation();
     });
@@ -46,7 +48,7 @@ export default class ChatUi {
           "Can you and your friends surivive a trip around the map on the river raft together? " +
           "Where do the teleporters take you? " +
           "Who survives if your gang accidentally misses the elevator and fall through the empty elevator shaft? " +
-          "Who makes the most amazing leaps on the trampolines? "+
+          "Who makes the most amazing leaps on the trampolines? " +
           "These mysteries (and not much more, to be honest) await you!",
         true
       );

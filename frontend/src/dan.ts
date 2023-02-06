@@ -27,7 +27,10 @@ export default class Dan extends XY {
   public rightFacingFrames: DrawSurface[];
   public leftFacingFrames: DrawSurface[];
 
-  public constructor(position: XY, facingLeft = true, frame = 0) {
+  public nameContainer: HTMLElement;
+  public name: string;
+
+  public constructor(position: XY, facingLeft = true, frame = 0, name: string) {
     super(position.x, position.y);
     this.facingLeft = facingLeft;
     this.frame = frame;
@@ -35,6 +38,25 @@ export default class Dan extends XY {
     const frames = this.parseDanFrames();
     this.leftFacingFrames = frames.leftFacingFrames;
     this.rightFacingFrames = frames.rightFacingFrames;
+
+    this.name = name;
+    this.nameContainer = document.createElement("div");
+    this.nameContainer.innerText = this.name;
+    this.nameContainer.style.position = "absolute";
+    this.nameContainer.style.color = "white";
+    this.nameContainer.style.fontFamily = "Arial";
+    this.nameContainer.style.fontSize = "8px";
+    this.nameContainer.style.zIndex = "2000";
+    this.nameContainer.style.width = "50px";
+    this.nameContainer.style.marginLeft = "-20px";
+    this.nameContainer.style.overflow = "hidden";
+    this.nameContainer.style.textAlign = "center";
+    this.nameContainer.style.opacity = "0.75";
+    this.nameContainer.style.textShadow = "0px 0px 1px black";
+
+    document.querySelector("#container").appendChild(this.nameContainer);
+
+    this.move(new XY(0, 0));
   }
 
   private parseDanFrames(): {
@@ -81,20 +103,32 @@ export default class Dan extends XY {
     this.x += xy.x;
     this.y += xy.y;
     this.syncAllDanFrameXys();
+
+    this.nameContainer.style.top = this.y + 30 + "px";
+    this.nameContainer.style.left = this.x + "px";
   }
 
-  setAllAttributes(xy: XY, facingLeft: boolean, frameNumber: number) {
+  setAllAttributes(
+    xy: XY,
+    facingLeft: boolean,
+    frameNumber: number,
+    name: string
+  ) {
     this.x = xy.x;
     this.y = xy.y;
-    this.syncAllDanFrameXys();
+    this.move(new XY(0, 0));
 
     this.forAllFrames((f) => f.hide());
     this.facingLeft = facingLeft;
     this.frame = frameNumber;
     this.getCurrentFrame().show();
+
+    this.name = name;
+    this.nameContainer.innerText = name;
   }
 
   destroy() {
     this.forAllFrames((f) => f.detachFromHtml());
+    this.nameContainer?.remove();
   }
 }

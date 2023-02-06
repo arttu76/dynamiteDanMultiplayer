@@ -73,6 +73,8 @@ Communication goes like this:
 
 ## TODO
 ### Frontend
- - name/rename players
+ - rename players
+ - fix monster death bugs
+ - add annoying touch screen controls
 ### Backend
  - backend with golang

@@ -28,6 +28,8 @@ const colorHacks: { [key: number]: ColorAttribute } = {
 const canBeStoodOnUdgIds = [
   107, // big two char magenta V
   64, // small magenta V
+  59, // small green V
+  26, // rope
 ];
 
 const ladderUdgIds = [

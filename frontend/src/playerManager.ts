@@ -38,19 +38,34 @@ export default class PlayerManager {
   player: Dan;
   fallHeight = 0;
 
+  name: string = "Anonymous";
+
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
   public pressedJump: boolean = false;
   public pressedDown: boolean = false;
 
+  networkManager: NetworkManager = null;
+
   constructor(
     initialDanPosition: XY,
     private roomManager: RoomManager,
-    private teleporterManager: TeleporterManager,
-    private networkManager: NetworkManager
+    private teleporterManager: TeleporterManager
   ) {
     this.roomManager = roomManager;
-    this.player = new Dan(initialDanPosition);
+
+    const nameMatch = location.search.match(/[&?]name=([^&$]*)/);
+    if (nameMatch && nameMatch[1]) {
+      this.name = decodeURIComponent(nameMatch[1]);
+    } else {
+      this.rename();
+    }
+
+    this.player = new Dan(initialDanPosition, false, 0, this.name);
+
+    this.networkManager = new NetworkManager(roomManager);
+
+    setInterval(() => this.persistStateToUrl(), 500);
   }
 
   private updatePlayer(time: number): void {
@@ -88,7 +103,7 @@ export default class PlayerManager {
         // try climbing
       } else if (!collidesWithRoom(new XY(-1, -1))) {
         walkedLeft = true;
-        this.player.y--;
+        this.player.move(new XY(0, -1));
       }
       if (walkedLeft) {
         this.player.move(new XY(-1, 0));
@@ -105,7 +120,7 @@ export default class PlayerManager {
         // try climbing
       } else if (!collidesWithRoom(new XY(1, -1))) {
         walkedRight = true;
-        this.player.y--;
+        this.player.move(new XY(0, -1));
       }
 
       if (walkedRight) {
@@ -191,7 +206,7 @@ export default class PlayerManager {
       ) {
         // ... then move up ...
         this.player.jumpFrame++;
-        this.player.y--;
+        this.player.move(new XY(0, -1));
       } else {
         // ... but otherwise fall down (unless float floats up)
         if (
@@ -200,7 +215,7 @@ export default class PlayerManager {
           !collidesWithRoom(new XY(0, 1))
         ) {
           this.player.jumpFrame = 0;
-          this.player.y++;
+          this.player.move(new XY(0, 1));
           this.fallHeight++;
         }
       }
@@ -234,18 +249,24 @@ export default class PlayerManager {
       this.player.y >
         192 + -danHeightInChars * 8 - 4 * 8 + danHeightDeficiencyInPixels
     ) {
-      this.player.y = 0;
+      this.player.move(new XY(0, -this.player.y));
       this.roomManager.moveDown();
     }
     if (isInRoomWithWater && this.player.y > 160) {
       this.roomManager.moveToRoom(new XY(3, 5));
-      this.player.x = 130;
-      this.player.y = 20;
+      this.player.move(new XY(-this.player.x + 130, -this.player.y + 20));
     }
 
     if (this.player.y < 0) {
-      this.player.y =
+      // don't go out of bounds from top of the screen
+      if (this.roomManager.getRoomXY().y === 5) {
+        this.player.move(new XY(0, -this.player.y + 5));
+        return;
+      }
+
+      const newY =
         8 * 19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;
+      this.player.move(new XY(0, -this.player.y + newY));
       this.roomManager.moveUp();
     }
 
@@ -272,5 +293,39 @@ export default class PlayerManager {
     );
 
     this.teleporterManager.teleportPlayerIfRequired(this.player);
+  }
+
+  private persistStateToUrl() {
+    const room: XY = this.roomManager.getRoomXY();
+    const pixels: XY = this.player;
+    const name = encodeURIComponent(this.name);
+
+    window.history.replaceState(
+      null,
+      "",
+      [
+        location.origin,
+        location.pathname,
+        "?room=",
+        room.x,
+        ",",
+        room.y,
+        "&xy=",
+        pixels.x,
+        ",",
+        pixels.y,
+        "&name=",
+        name,
+      ].join("")
+    );
+  }
+
+  rename(): void {
+    this.name = prompt("Enter your new name:", this.name) || "Anonymous";
+    this.networkManager && this.networkManager.rename(this.name);
+  }
+
+  getTimeDiff(): number {
+    return this.networkManager?.getTimeDiff() || 0;
   }
 }

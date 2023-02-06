@@ -3,13 +3,13 @@ import { Socket } from "socket.io";
 import {
   CommChannels,
   CommEventNames,
-  CommInitInfo,
-  CommMap,
+  CommInitResponse,
   CommPlayerStateFromPlayer,
   CommPlayerStateFromServer,
   CommRemoveOtherPlayerFromServer,
   CommMonsterDeath,
   CommChatMessage,
+  CommPlayerGlobals,
 } from "./../../commonTypes";
 
 const app = express();
@@ -32,11 +32,13 @@ app.get("/", (_, res) => res.redirect("http://localhost:9000"));
 
 const global = io.of(CommChannels.Global);
 global.on("connection", (socketForGlobal) => {
-  socketForGlobal.on(CommEventNames.Initialize, (_, callback) =>
+  socketForGlobal.on(CommEventNames.Initialize, (_, callback) => {
     callback({
       serverTime: Date.now(),
-    } as CommInitInfo)
-  );
+      ...getPlayerGlobals(),
+    } as CommInitResponse);
+  });
+
   socketForGlobal.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
     monsterDeaths = monsterDeaths.filter(
       (md) =>
@@ -46,17 +48,20 @@ global.on("connection", (socketForGlobal) => {
     global.emit(CommEventNames.MonsterDeath, death);
   });
 });
-const updateGlobalPlayerCount = () => {
-  global.emit(CommEventNames.MapUpdate, {
-    playerCounts: socketsByRooms.map((sockets) => sockets.length),
-  } as CommMap);
+
+const getPlayerGlobals = (): CommPlayerGlobals => ({
+  playerCounts: socketsByRooms.map((sockets) => sockets.length),
+});
+
+const emitPlayerGlobals = () => {
+  global.emit(CommEventNames.PlayerGlobalsUpdate, getPlayerGlobals());
 };
 
 range(48).forEach((roomNumber) => {
   const roomSpecific = io.of(CommChannels.RoomPrefix + roomNumber);
   roomSpecific.on("connection", (socketForRoom) => {
     socketsByRooms[roomNumber].push(socketForRoom);
-    updateGlobalPlayerCount();
+    emitPlayerGlobals();
 
     console.log("/room" + roomNumber + " " + socketForRoom.id + " connected");
 
@@ -64,12 +69,12 @@ range(48).forEach((roomNumber) => {
     socketsByRooms[roomNumber]
       // don't tell about ourselves & tell only players we know something about
       .filter((playerSocket) => playerSocket.id !== socketForRoom.id)
-      .forEach((playerSocket) =>
+      .forEach((playerSocket) => {
         socketForRoom.emit(CommEventNames.PlayerStatusFromServer, {
           ...newestPlayerStates[playerSocket.id],
           id: playerSocket.id,
-        } as CommPlayerStateFromServer)
-      );
+        } as CommPlayerStateFromServer);
+      });
 
     // broadcast monster deaths for this room
     monsterDeaths
@@ -87,7 +92,7 @@ range(48).forEach((roomNumber) => {
         id: socketForRoom.id,
       } as CommRemoveOtherPlayerFromServer);
       delete newestPlayerStates[socketForRoom.id];
-      updateGlobalPlayerCount();
+      emitPlayerGlobals();
     });
 
     socketForRoom.on(
@@ -96,6 +101,7 @@ range(48).forEach((roomNumber) => {
         newestPlayerStates[socketForRoom.id] = playerState;
         roomSpecific.emit(CommEventNames.PlayerStatusFromServer, {
           ...playerState,
+          name: playerState.name,
           id: socketForRoom.id,
         } as CommPlayerStateFromServer);
       }

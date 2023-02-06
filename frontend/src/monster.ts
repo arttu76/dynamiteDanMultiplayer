@@ -29,8 +29,7 @@ export default class Monster extends XY {
     minVaryingCoordinate: number,
     maxVaryingCoordinate: number,
     frames: DrawSurface[],
-    inverseDir: boolean,
-    id: number = -1
+    inverseDir: boolean
   ) {
     super(x * 8, y * 8);
 
@@ -54,8 +53,6 @@ export default class Monster extends XY {
     this.frames.forEach((f) => f.flipHorizontally(inverseDir));
 
     this.currentFrame = 0;
-
-    this.id = id;
   }
 
   setId(id: number) {

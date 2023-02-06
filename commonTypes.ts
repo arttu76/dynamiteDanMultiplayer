@@ -5,27 +5,29 @@ export enum CommChannels {
 
 export enum CommEventNames {
     Initialize = 'i',
-    MapUpdate = 'm',
+    PlayerGlobalsUpdate = 'm',
     RequestClientReset = '!',
     PlayerUpdateFromClient = 'u',
     PlayerStatusFromServer = 'p',
     PlayerRemove = 'r',
+    PlayerRenameRequest = 'ren',
     MonsterDeath = 'd',
     ChatMessage = 'c'
 }
 
 // info player receives from server when first initializing
-export interface CommInitInfo {
+export interface CommInitResponse extends CommPlayerGlobals {
     serverTime: number; // server time in milliseconds 
 }
 
 // "global" information transmitted to every player
-export interface CommMap {
+export interface CommPlayerGlobals {
     playerCounts: number[]; // array of number of users in each room
 }
 
 // state player sends to server 
 export interface CommPlayerStateFromPlayer {
+    name: string;
     x: number;
     y: number;
     facingLeft: boolean;
