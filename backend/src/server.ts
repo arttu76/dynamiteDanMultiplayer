@@ -1,5 +1,6 @@
 import express from "express";
-import { Socket } from "socket.io";
+import http from 'http';
+import { Server, Socket } from "socket.io";
 import {
   CommChannels,
   CommEventNames,
@@ -11,24 +12,27 @@ import {
   CommChatMessage,
   CommPlayerGlobals,
 } from "./../../commonTypes";
-
-const app = express();
+import path from "path";
 
 const range = (maxExclusive: number) => Array.from(Array(maxExclusive).keys());
 
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
 const socketsByRooms: Socket[][] = range(48).map(() => []);
 const newestPlayerStates: { [key: string]: CommPlayerStateFromPlayer } = {};
-
 let monsterDeaths: CommMonsterDeath[] = [];
 
-const io = require("socket.io")(1000, {
-  cors: {
-    origin: "http://localhost:9000",
-    methods: ["GET", "POST"],
-  },
+const serveStatic = (url:string, frontendDistFilename: string = null) =>
+app.get(url, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/'+(frontendDistFilename || req.originalUrl)));
 });
 
-app.get("/", (_, res) => res.redirect("http://localhost:9000"));
+serveStatic("/", "index.html");
+serveStatic("/index.html");
+serveStatic("/favicon.ico");
+serveStatic("/[a-f0-9]*?.js");
 
 const global = io.of(CommChannels.Global);
 global.on("connection", (socketForGlobal) => {
@@ -113,11 +117,13 @@ range(48).forEach((roomNumber) => {
   });
 });
 
-app.listen(55080);
+server.listen(55080);
 
 console.log(
   "Server started at " +
     new Date() +
+    " in port 55080 in " +
+    path.join(__dirname) +
     ", requesting clients to do full reset in a sec..."
 );
 setTimeout(() => {

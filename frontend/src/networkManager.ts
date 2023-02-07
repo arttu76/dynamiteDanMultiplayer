@@ -34,7 +34,7 @@ export default class NetworkManager {
   previousRoomNumber: number = -1;
 
   private getSocket(channel: CommChannels, extra: number | string = "") {
-    return io(":1000" + channel + extra);
+    return io("//" + channel + extra);
   }
 
   constructor(

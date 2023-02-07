@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dyndan-service
+spec:
+  ports:
+  - port: 80
+    targetPort: dyndan-port
+  selector:
+    app: dyndan-deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dyndan-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dyndan-deployment
+  template:
+    metadata:
+      labels:
+        app: dyndan-deployment
+    spec:
+      containers:
+      - name: dyndan-deployment
+        image: registry.digitalocean.com/solvalou-docker/dynamitedanmultiplayer:latest
+        imagePullPolicy: Always
+        ports:
+          - name: dyndan-port
+            containerPort: 55080
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: dyndan-port
+          initialDelaySeconds: 3
+          periodSeconds: 120
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dyndan-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: dyndan-deployment
+

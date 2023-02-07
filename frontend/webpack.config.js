@@ -31,6 +31,7 @@ export default {
 		filename: 'index.html',
 		inject: true,
 		template: 'resources/index.html',
+		favicon: "resources/favicon.ico"
 	})],
 	module: {
 		rules: [{
