@@ -16,15 +16,15 @@ import {
   CommPlayerGlobals,
 } from "./../../commonTypes";
 import RoomManager from "./roomManager";
+import PlayerManager from "./playerManager";
 import ChatUi from "./chatUi";
 
 export default class NetworkManager {
   public timeDiff: null | number = null;
 
-  playerCountMap = new PlayerCountMap();
+  playerCountMap = new PlayerCountMap(this.playerManager);
   chatUi = new ChatUi(this);
 
-  localPlayerName = "";
   playersInRoom: { [key: string]: Dan } = {};
 
   globalSocket: Socket = null;
@@ -37,7 +37,10 @@ export default class NetworkManager {
     return io(":1000" + channel + extra);
   }
 
-  constructor(private roomManager: RoomManager) {
+  constructor(
+    private roomManager: RoomManager,
+    private playerManager: PlayerManager
+  ) {
     this.globalSocket = this.getSocket(CommChannels.Global);
     this.globalSocket.on("connect", () => {
       const updateGlobals = (globalState: CommPlayerGlobals) => {
@@ -81,8 +84,6 @@ export default class NetworkManager {
   }
 
   sendPlayerStatusToServer(player: Dan, roomNumber: number) {
-    this.localPlayerName = player.name;
-
     const newState: CommPlayerStateFromPlayer = {
       x: player.x,
       y: player.y,
@@ -158,7 +159,7 @@ export default class NetworkManager {
     if (this.roomSocket?.connected) {
       this.roomSocket.emit(CommEventNames.PlayerUpdateFromClient, newState);
     } else {
-      // invalidate cache state, so we try to connect immediately again 
+      // invalidate cache state, so we try to connect immediately again
       this.previousPlayerState = null;
     }
   }
@@ -180,6 +181,7 @@ export default class NetworkManager {
   rename(newName: string) {
     if (this.globalSocket?.connected) {
       this.globalSocket.emit(CommEventNames.PlayerRenameRequest, newName);
+      this.playerManager.player.rename(newName);
     }
   }
 
@@ -189,7 +191,7 @@ export default class NetworkManager {
     }
 
     this.roomSocket.emit(CommEventNames.ChatMessage, {
-      text: this.localPlayerName + ": " + text,
+      text: this.playerManager.name + ": " + text,
     } as CommChatMessage);
 
     return true;

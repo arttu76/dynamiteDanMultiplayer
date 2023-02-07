@@ -58,12 +58,15 @@ export default class PlayerManager {
     if (nameMatch && nameMatch[1]) {
       this.name = decodeURIComponent(nameMatch[1]);
     } else {
-      this.rename();
+      this.rename(prompt("Enter your nickname to get started"));
     }
 
     this.player = new Dan(initialDanPosition, false, 0, this.name);
 
-    this.networkManager = new NetworkManager(roomManager);
+    this.networkManager = new NetworkManager(
+      roomManager,
+      this
+    );
 
     setInterval(() => this.persistStateToUrl(), 500);
   }
@@ -320,8 +323,8 @@ export default class PlayerManager {
     );
   }
 
-  rename(): void {
-    this.name = prompt("Enter your new name:", this.name) || "Anonymous";
+  rename(newName: string): void {
+    this.name = newName || 'Anonymous';
     this.networkManager && this.networkManager.rename(this.name);
   }
 

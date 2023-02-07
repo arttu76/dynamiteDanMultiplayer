@@ -1,5 +1,4 @@
 import NetworkManager from "./networkManager";
-import { range } from "./util";
 
 export default class ChatUi {
   chatContainer: HTMLElement;
@@ -36,20 +35,20 @@ export default class ChatUi {
     if (!this.alreadyClearedOnce) {
       this.alreadyClearedOnce = true;
       this.addLineToChat(
-        "Welcome to Dan Dare Multiplayer chatroom complex!",
+        "Welcome to Dynamite Dan Multiplayer chatroom complex!",
         true
       );
       this.addLineToChat(
-        "TLDR: This is a reverse-engineered/reprogrammed version of the classic (at least for some Europeans) 8-bit game. " +
+        'TLDR: This is a reverse-engineered/reprogrammed version of the classic (at least for some Europeans: <a href="https://www.crashonline.org.uk/27/awards.htm" target="_blank">best platform game of the year 1985</a>) 8-bit game. ' +
           "While there is no real goal in this version, the platforming implementation is enhanced by turning it into an online multiplayer chat room. " +
-          "Click on the screen and use arrow keys to move." +
-          "You can chat with other players located in the same room: write your text into the text box and press enter. " +
-          "The grid in the corner of the chat indicates the rooms in which other players are located. " +
+          "Click on the screen and use arrow keys (or touch the game screen edges) to move." +
+          "You can chat with other players located in the same room: write your text into the text box below and press enter. " +
+          "The grid in the corner of the chat (hover your mouse over it to see it better) indicates the rooms in which other players are located and also allows you to rename yourself and reset the game if you somehow get stuck. " +
           "Can you and your friends surivive a trip around the map on the river raft together? " +
           "Where do the teleporters take you? " +
           "Who survives if your gang accidentally misses the elevator and fall through the empty elevator shaft? " +
           "Who makes the most amazing leaps on the trampolines? " +
-          "These mysteries (and not much more, to be honest) await you!",
+          'What would <a href="https://postlmg.cc/9DHY0C4R" target="_blank">Rod Bowket</a> think about all this?',
         true
       );
     }
@@ -65,7 +64,7 @@ export default class ChatUi {
     oldInput?.remove();
 
     const line = document.createElement("div");
-    line.innerText = text;
+    line[specialStyle ? 'innerHTML' : 'innerText'] = text;
     line.className = specialStyle ? "special" : "normal";
     this.chatContainer.querySelector("div").appendChild(line);
 

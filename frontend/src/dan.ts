@@ -108,6 +108,11 @@ export default class Dan extends XY {
     this.nameContainer.style.left = this.x + "px";
   }
 
+  rename(name: string) {
+    this.name = name;
+    this.nameContainer.innerText = name;
+  }
+
   setAllAttributes(
     xy: XY,
     facingLeft: boolean,
@@ -123,8 +128,7 @@ export default class Dan extends XY {
     this.frame = frameNumber;
     this.getCurrentFrame().show();
 
-    this.name = name;
-    this.nameContainer.innerText = name;
+    this.rename(name);
   }
 
   destroy() {

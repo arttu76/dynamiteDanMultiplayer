@@ -106,8 +106,10 @@ export default class Monster extends XY {
     this.currentFrame = Math.floor(tickForAnimation / 2) % this.frames.length;
     this.frames[this.currentFrame].setPosition(new XY(this.x, this.y)).show();
 
-    this.frames.forEach((f) =>
-      f.setStyle({ opacity: this.isDead(time) ? "0.125" : "1" })
-    );
+    const dead = this.isDead(time);
+
+    this.frames.forEach((f) => f.setStyle({
+        filter: dead ? "blur(5px)": "blur(0px)"
+      }));
   }
 }

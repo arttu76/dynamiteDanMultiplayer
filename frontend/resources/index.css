@@ -12,13 +12,16 @@ html, body {
     z-index: 2000;
     position: absolute;
     line-height: 0;
+    opacity: 0.25;
 }
-#map div {
+#map:hover {
+    opacity: 1;
+}
+#map div.mapRoom {
     overflow: hidden;
-    background: rgba(96,96,96,0.9);
-    box-shadow: inset 0 0 4px rgba(0,0,0,0.25);
+    background: rgb(96,96,96);
     border-radius: 3px;
-    color: rgba(255,255,255,0.33);
+    color: rgb(255,255,255);
     width: 19px;
     height: 19px;
     line-height: 21px;
@@ -26,6 +29,24 @@ html, body {
     text-align: center;
     font-family: Arial, Helvetica, sans-serif;
     margin: 0 0 1px 1px;
+}
+#map div.mapButtons {
+    display: flex;
+    justify-content: space-between;
+    height: 20px;    
+    line-height: 13px;
+}
+#map div.mapButtons div {
+    background: rgb(96,96,96);
+    border-radius: 3px;
+    color: rgb(255,255,255);
+    padding: 5px 10px;
+    font-family: Arial, Helvetica, sans-serif;
+    cursor: pointer;
+}
+#map div.mapButtons div:hover {
+    color: rgb(96,96,96);
+    background: rgb(255,255,255);
 }
 
 #chat {
@@ -58,10 +79,11 @@ html, body {
 #chat div div:nth-child(even) {
     color: rgba(255,255,255,0.75);
 }
-#chat div div.special {
+#chat div div.special, #chat div div.special a {
     font-style: italic;
     color: #ccc;
 }
+
 #chat div div:last-of-type {
     padding-bottom: 30px;
 }
@@ -89,5 +111,44 @@ html, body {
 
 #container  canvas {
     z-index: 100;
+}
+
+#touchControls {
+    position: absolute;
+    width: 256px;
+    height: 160px;
+}
+#touchControls div {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+#touchControls div #touchUp {
+    position: absolute;
+    top: 0;
+    left: 30%;
+    width: 40%;
+    height: 50%;
+}
+#touchControls div #touchDown {
+    position: absolute;
+    top: 50%;
+    left: 30%;
+    width: 40%;
+    height: 50%;    
+}
+#touchControls div #touchLeft {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;    
+}
+#touchControls div #touchRight {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;    
 }
 

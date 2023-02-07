@@ -92,6 +92,7 @@ export default class ElevatorManager {
     const isPlayer = this.isPlayerCurrently();
 
     if (!isPlayer.inAnyRoomWithElevatorShaft) {
+      this.elevator.hide();
       return;
     }
 

@@ -30,6 +30,7 @@ const canBeStoodOnUdgIds = [
   64, // small magenta V
   59, // small green V
   26, // rope
+  212, // lamp
 ];
 
 const ladderUdgIds = [
