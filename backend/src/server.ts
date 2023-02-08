@@ -1,5 +1,5 @@
 import express from "express";
-import http from 'http';
+import http from "http";
 import { Server, Socket } from "socket.io";
 import {
   CommChannels,
@@ -15,7 +15,6 @@ import {
 import path from "path";
 
 const range = (maxExclusive: number) => Array.from(Array(maxExclusive).keys());
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -24,14 +23,20 @@ const socketsByRooms: Socket[][] = range(48).map(() => []);
 const newestPlayerStates: { [key: string]: CommPlayerStateFromPlayer } = {};
 let monsterDeaths: CommMonsterDeath[] = [];
 
-const serveStatic = (url:string, frontendDistFilename: string = null) =>
-app.get(url, (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/'+(frontendDistFilename || req.originalUrl)));
-});
+const serveStatic = (url: string, frontendDistFilename: string = null) => {
+  app.get(url, (req, res) => {
+    res.sendFile(
+      path.join(
+        __dirname,
+        "../../frontend/dist/" + (frontendDistFilename || req.originalUrl)
+      )
+    );
+  });
+};
 
+serveStatic("/favicon.ico");
 serveStatic("/", "index.html");
 serveStatic("/index.html");
-serveStatic("/favicon.ico");
 serveStatic("/[a-f0-9]*?.js");
 
 const global = io.of(CommChannels.Global);
@@ -114,15 +119,43 @@ range(48).forEach((roomNumber) => {
     socketForRoom.on(CommEventNames.ChatMessage, (chat: CommChatMessage) => {
       roomSpecific.emit(CommEventNames.ChatMessage, chat);
     });
+
+    // prune unused connections
+    setInterval(() => {
+      let removedSomething = false;
+
+      range(48).forEach((room) => {
+        const sockets = socketsByRooms[room];
+        if (sockets?.length) {
+          return;
+        }
+        sockets
+          .filter((socket) => !socket?.connected)
+          .forEach((socket) => {
+            removedSomething = true;
+            roomSpecific.emit(CommEventNames.PlayerRemove, {
+              id: socket.id,
+            } as CommRemoveOtherPlayerFromServer);
+            delete newestPlayerStates[socket.id];
+            console.log("...pruned non-connected socket" + socket.id);
+          });
+
+        if (removedSomething) {
+          socketsByRooms[roomNumber] = socketsByRooms[roomNumber].filter(
+            (playerSocket) => playerSocket.connected
+          );
+          emitPlayerGlobals();
+        }
+      });
+    }, 30 * 1000);
   });
 });
 
 server.listen(55080);
 
 console.log(
-  "Server started at " +
+  "55080 port server started at " +
     new Date() +
-    " in port 55080 in " +
     path.join(__dirname) +
     ", requesting clients to do full reset in a sec..."
 );

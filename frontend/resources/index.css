@@ -11,6 +11,8 @@ html, body {
     -webkit-text-size-adjust: none; 
     -webkit-user-select: none;
     user-select: none;
+
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 #map {
@@ -32,7 +34,6 @@ html, body {
     line-height: 21px;
     display: inline-block;
     text-align: center;
-    font-family: Arial, Helvetica, sans-serif;
     margin: 0 0 1px 1px;
 }
 #map div.mapButtons {
@@ -46,7 +47,6 @@ html, body {
     border-radius: 3px;
     color: rgb(255,255,255);
     padding: 5px 10px;
-    font-family: Arial, Helvetica, sans-serif;
     cursor: pointer;
 }
 #map div.mapButtons div:hover {
@@ -75,7 +75,6 @@ html, body {
 }
 
 #chat div div {
-    font-family: Arial, Helvetica, sans-serif;
     width: 90%;
     margin-left: 5%;
     word-wrap: break-word;
@@ -113,7 +112,6 @@ html, body {
     image-rendering: pixelated;
     overflow: hidden;
 }
-
 #container  canvas {
     z-index: 100;
 }

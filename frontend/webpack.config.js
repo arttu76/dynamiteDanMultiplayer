@@ -8,9 +8,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default {
 	entry: './src/index.ts',
 	devServer: {
-		client: {
-			progress: true
-		},
+		proxy: {
+			'/socket.io/': 'http://localhost:55080/socket.io/',
+		  },
 		static: {
 			directory: path.join(__dirname, 'dist'),
 		},

@@ -198,15 +198,6 @@ export default class RoomManager {
     this.currentRoom = roomXy;
     this.getCurrentRoom().attachToHtml().setStyle({ "z-index": "0" }).show();
     this.getCurrentMonsters().forEach((m) => m.show());
-
-    console.log(
-      "Moved to room x:" +
-        this.currentRoom.x +
-        " y:" +
-        this.currentRoom.y +
-        " number " +
-        this.getRoomIndex()
-    );
   }
 
   private getRoomData(roomNumber: number): number[] {

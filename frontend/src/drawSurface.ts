@@ -217,7 +217,7 @@ export default class DrawSurface extends XY {
   flipHorizontally(flip: boolean): DrawSurface {
     this.flippedHorizontally = flip;
     this.setStyle({
-      transform: "scaleX(" + (flip ? -1 : 1) + ")",
+      transform: "scaleX(" + (flip ? -1 : 1) + ")"
     });
     return this;
   }

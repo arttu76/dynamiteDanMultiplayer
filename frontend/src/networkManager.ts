@@ -71,6 +71,12 @@ export default class NetworkManager {
         }
       );
     });
+
+    window.addEventListener("beforeunload", () => {
+      this.globalSocket?.connected && this.globalSocket.disconnect();
+      this.roomSocket?.connected && this.roomSocket.disconnect();
+    });
+
   }
 
   removePlayersFromLocalClient(specificPlayerId?: string) {
@@ -101,7 +107,7 @@ export default class NetworkManager {
 
     if (roomNumber !== this.previousRoomNumber) {
       // exit old room
-      this.roomSocket?.connected && this.roomSocket.disconnect();
+      this.roomSocket?.connected && this.roomSocket.close();
       this.removePlayersFromLocalClient();
       this.chatUi.clearChat();
 

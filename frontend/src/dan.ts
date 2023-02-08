@@ -53,6 +53,7 @@ export default class Dan extends XY {
     this.nameContainer.style.textAlign = "center";
     this.nameContainer.style.opacity = "0.75";
     this.nameContainer.style.textShadow = "0px 0px 1px black";
+    this.nameContainer.style.transform = "translate3d(0,0,0)";
 
     document.querySelector("#container").appendChild(this.nameContainer);
 
@@ -64,18 +65,20 @@ export default class Dan extends XY {
     leftFacingFrames: DrawSurface[];
   } {
     const grabFrames = (offsetHex: string, pixelOffsets: number[]) =>
-      range(4).map(
-        (index) =>
-          new DrawSurface(
-            new XY(0, 0),
-            danWidthInChars * 8,
-            danHeightInChars * 8,
-            true,
-            false,
-            danColor,
-            ROM.copy(d(offsetHex) + danDataSize * index, danDataSize),
-            pixelOffsets[index] // pixel data for dan is not left-aligned
-          )
+      range(4).map((index) =>
+        new DrawSurface(
+          new XY(0, 0),
+          danWidthInChars * 8,
+          danHeightInChars * 8,
+          true,
+          false,
+          danColor,
+          ROM.copy(d(offsetHex) + danDataSize * index, danDataSize),
+          pixelOffsets[index] // pixel data for dan is not left-aligned
+        ).setStyle({
+          "z-index": "10000",
+          "transform": "translate3d(0,0,0)"
+        })
       );
 
     return {
