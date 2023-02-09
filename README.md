@@ -73,6 +73,6 @@ Communication goes like this:
 
 ## TODO
 ### Frontend
- - fix monster death bugs
+ - fix iphone not closing sockets instantly when closing tab
 ### Backend
  - backend with golang
