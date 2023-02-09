@@ -160,7 +160,6 @@ export default class RoomManager {
     const justDiedMonsters = this.getCurrentMonsters()
       .filter((m) => !m.isDead(time))
       .filter((m) => m.isInCollisionWith(player));
-
     justDiedMonsters.forEach((m) => (m.diedAt = time));
     return justDiedMonsters;
   }
@@ -440,14 +439,31 @@ export default class RoomManager {
   }
 
   isOnTopOfAThingThatCanBeStoodOn(player: Dan): boolean {
-    return (
-      !this.isTouchingCollisionMap(this.canBeStoodOnCollisionMaps, player) &&
-      this.isTouchingCollisionMap(
-        this.canBeStoodOnCollisionMaps,
-        player,
-        new XY(0, 1)
-      )
+    const playerHeight=26;
+    const roomIndex=this.getRoomIndex();
+
+    // out of map
+    if(!(player.y+playerHeight<this.canBeStoodOnCollisionMaps[roomIndex].heightInPixels)) {
+      return false;
+    }
+
+    const getCollidingPixels = (y: number) => (
+      range(12)
+      .filter(x => this.canBeStoodOnCollisionMaps[roomIndex].pixels[player.y+y][player.x+x])
     );
+
+    const collisionsUnderFeet = getCollidingPixels(playerHeight);
+    if(!collisionsUnderFeet.length) {
+      return false;
+    }
+    
+    // is the top of the feet INSIDE a collision block?
+    const collisionsOnePixelAboveUnderFeet = getCollidingPixels(playerHeight-1);
+    if(collisionsOnePixelAboveUnderFeet.length) {
+      return false; 
+    }
+
+    return true;
   }
 
   isOnTopOfLadder(player: Dan): boolean {

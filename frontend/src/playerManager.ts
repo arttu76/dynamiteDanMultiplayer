@@ -135,6 +135,7 @@ export default class PlayerManager {
 
     // on ladder
     if (this.roomManager.isInLadder(this.player)) {
+      // press up
       if (
         this.pressedJump &&
         !this.pressedDown &&
@@ -142,7 +143,7 @@ export default class PlayerManager {
       ) {
         this.player.move(new XY(0, -1));
       }
-
+      // press down
       if (
         !this.pressedJump &&
         this.pressedDown &&
@@ -242,10 +243,12 @@ export default class PlayerManager {
     if (this.player.x < 0 - 4) {
       this.player.x = 256 - danWidthInChars * 8 + 8;
       this.roomManager.moveLeft();
+      this.roomManager.updateMonsters(time);
     }
     if (this.player.x > 256 - danWidthInChars * 8 + 10) {
       this.player.x = 0;
       this.roomManager.moveRight();
+      this.roomManager.updateMonsters(time);
     }
     if (
       !isInRoomWithWater &&
@@ -254,10 +257,12 @@ export default class PlayerManager {
     ) {
       this.player.move(new XY(0, -this.player.y));
       this.roomManager.moveDown();
+      this.roomManager.updateMonsters(time);
     }
     if (isInRoomWithWater && this.player.y > 160) {
       this.roomManager.moveToRoom(new XY(3, 5));
       this.player.move(new XY(-this.player.x + 130, -this.player.y + 20));
+      this.roomManager.updateMonsters(time);
     }
 
     if (this.player.y < 0) {
@@ -271,6 +276,7 @@ export default class PlayerManager {
         8 * 19 - danHeightInChars * 8 + danHeightDeficiencyInPixels + 4;
       this.player.move(new XY(0, -this.player.y + newY));
       this.roomManager.moveUp();
+      this.roomManager.updateMonsters(time);
     }
 
     this.networkManager.sendPlayerStatusToServer(
@@ -281,13 +287,14 @@ export default class PlayerManager {
 
   update(time: number): void {
     this.updatePlayer(time);
+
     const justDiedMonsters =
       this.roomManager.updateMonsterCollisionsAndGetHitMonsters(
         this.player.getCurrentFrame(),
         time
       );
 
-    justDiedMonsters.forEach((m) =>
+      justDiedMonsters.forEach((m) =>
       this.networkManager.sendMonsterDeathToServer(
         this.roomManager.getRoomIndex(),
         m.id,
@@ -299,6 +306,10 @@ export default class PlayerManager {
   }
 
   private persistStateToUrl() {
+    if(location.href.includes("ignoreUrlUpdate=true")) {
+      return;
+    }
+
     const room: XY = this.roomManager.getRoomXY();
     const pixels: XY = this.player;
     const name = encodeURIComponent(this.name);
