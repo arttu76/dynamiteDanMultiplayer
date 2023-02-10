@@ -107,7 +107,7 @@ export default class NetworkManager {
 
     if (roomNumber !== this.previousRoomNumber) {
       // exit old room
-      this.roomSocket?.connected && this.roomSocket.close();
+      this.roomSocket?.disconnect();
       this.removePlayersFromLocalClient();
       this.chatUi.clearChat();
 
@@ -119,9 +119,10 @@ export default class NetworkManager {
         CommEventNames.PlayerStatusFromServer,
         (pl: CommPlayerStateFromServer) => {
           // don't update itself
-          if (this.roomSocket.id === pl.id) {
+          if (this.roomSocket.id === pl.id || !pl.name) {
             return;
           }
+
           // we don't know about this player? add it
           if (!this.playersInRoom[pl.id]) {
             this.playersInRoom[pl.id] = new Dan(

@@ -77,7 +77,7 @@ range(48).forEach((roomNumber) => {
     // tell about other players
     socketsByRooms[roomNumber]
       // don't tell about ourselves & tell only players we know something about
-      .filter((playerSocket) => playerSocket.id !== socketForRoom.id)
+      .filter((playerSocket) => playerSocket.id !== socketForRoom.id && newestPlayerStates[playerSocket.id].name)
       .forEach((playerSocket) => {
         socketForRoom.emit(CommEventNames.PlayerStatusFromServer, {
           ...newestPlayerStates[playerSocket.id],
