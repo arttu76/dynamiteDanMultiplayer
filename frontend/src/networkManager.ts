@@ -34,7 +34,7 @@ export default class NetworkManager {
   previousRoomNumber: number = -1;
 
   private getSocket(channel: CommChannels, extra: number | string = "") {
-    return io("//" + channel + extra);
+    return io("//" + channel + extra, { autoConnect: false }).connect();
   }
 
   constructor(
@@ -76,7 +76,6 @@ export default class NetworkManager {
       this.globalSocket?.connected && this.globalSocket.disconnect();
       this.roomSocket?.connected && this.roomSocket.disconnect();
     });
-
   }
 
   removePlayersFromLocalClient(specificPlayerId?: string) {
@@ -105,17 +104,17 @@ export default class NetworkManager {
     }
     this.previousPlayerState = serializedState;
 
+    // changed rooms, switch connections
     if (roomNumber !== this.previousRoomNumber) {
+      this.previousRoomNumber = roomNumber;
+
       // exit old room
       this.roomSocket?.disconnect();
+      this.roomSocket = this.getSocket(CommChannels.RoomPrefix, roomNumber);
       this.removePlayersFromLocalClient();
       this.chatUi.clearChat();
 
-      // enter new room
-      this.roomSocket = this.getSocket(CommChannels.RoomPrefix, roomNumber);
-      this.previousRoomNumber = roomNumber;
-
-      this.roomSocket.on(
+      this.roomSocket?.on(
         CommEventNames.PlayerStatusFromServer,
         (pl: CommPlayerStateFromServer) => {
           // don't update itself
@@ -143,7 +142,7 @@ export default class NetworkManager {
         }
       );
 
-      this.roomSocket.on(
+      this.roomSocket?.on(
         CommEventNames.PlayerRemove,
         (info: CommRemoveOtherPlayerFromServer) => {
           const id = info.id;
@@ -155,7 +154,7 @@ export default class NetworkManager {
         }
       );
 
-      this.roomSocket.on(
+      this.roomSocket?.on(
         CommEventNames.ChatMessage,
         (chat: CommChatMessage) => {
           this.chatUi.addLineToChat(chat.text, false);
