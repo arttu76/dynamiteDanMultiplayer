@@ -37,7 +37,7 @@ const serveStatic = (url: string, frontendDistFilename: string = null) => {
 serveStatic("/favicon.ico");
 serveStatic("/", "index.html");
 serveStatic("/index.html");
-serveStatic("/[a-f0-9]*?.js");
+serveStatic("/[a-f0-9]*?.(js|jpg)$");
 
 const global = io.of(CommChannels.Global);
 global.on("connection", (socketForGlobal) => {
