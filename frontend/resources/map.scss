@@ -1,0 +1,46 @@
+#map {
+    z-index: 2000;
+    position: absolute;
+    line-height: 0;
+
+    transition: transform 0.75s, opacity 0.5s;
+    transform: scale(0.9);
+    opacity: 0.25;
+    &:hover {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    .mapRoom {
+        overflow: hidden;
+        background: rgb(96,96,96);
+        border-radius: 3px;
+        color: rgb(255,255,255);
+        width: 19px;
+        height: 19px;
+        line-height: 21px;
+        display: inline-block;
+        text-align: center;
+        margin: 0 0 1px 1px;
+    }
+
+    .mapButtons {
+        display: flex;
+        justify-content: space-between;
+        height: 20px;    
+        line-height: 13px;
+
+        div {
+            cursor: pointer;
+            border-radius: 3px;
+            padding: 5px 10px;
+
+            color: rgb(255,255,255);
+            background: rgb(96,96,96);
+            &:hover {
+                color: rgb(96,96,96);
+                background: rgb(255,255,255);
+            }
+        }
+    }
+}

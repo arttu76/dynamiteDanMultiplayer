@@ -29,7 +29,7 @@ export default class ChatUi {
   }
 
   clearChat() {
-    this.chatContainer.innerHTML = "<div></div>";
+    this.chatContainer.innerHTML = '<div id="chatContentContainer"></div>';
     this.addInputToChat();
 
     if (!this.alreadyClearedOnce) {
@@ -41,8 +41,8 @@ export default class ChatUi {
       this.addLineToChat(
         'TLDR: This is a reverse-engineered/reprogrammed version of the classic (at least for some Europeans: <a href="https://www.crashonline.org.uk/27/awards.htm" target="_blank">best platform game of the year 1985</a>) 8-bit game. ' +
           "While there is no real goal in this version, the platforming implementation is enhanced by turning it into an online multiplayer chat room. " +
-          "Click on the screen and use arrow keys (or touch the game screen edges) to move." +
-          "You can chat with other players located in the same room: write your text into the text box below and press enter. " +
+          "<b>Click on the game screen and use arrow keys (or touch the game screen edges) to move.</b> " +
+          "<b>You can chat with other players located in the same room</b>: write your text into the text box below and press enter. " +
           "The grid in the corner of the chat (hover your mouse over it to see it better) indicates the rooms in which other players are located and also allows you to rename yourself and reset the game if you somehow get stuck. " +
           "Can you and your friends surivive a trip around the map on the river raft together? " +
           "Where do the teleporters take you? " +
@@ -64,8 +64,9 @@ export default class ChatUi {
     oldInput?.remove();
 
     const line = document.createElement("div");
-    line[specialStyle ? 'innerHTML' : 'innerText'] = text;
-    line.className = specialStyle ? "special" : "normal";
+    line.classList.add("chatTextItem");
+    line[specialStyle ? "innerHTML" : "innerText"] = text;
+    line.classList.add(specialStyle ? "special" : "normal");
     this.chatContainer.querySelector("div").appendChild(line);
 
     this.addInputToChat(wasFocused);

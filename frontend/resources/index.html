@@ -17,19 +17,29 @@
     <!-- End Google Tag Manager -->
 
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=750, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0" />
+    <meta
+      name="viewport"
+      content="width=750, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0"
+    />
     <title>Dynamite Dan Multiplayer</title>
   </head>
   <body>
+    <div id="intro">
+      <span>Welcome! Enter your callsign:</span>
+      <div>
+        <input id="nameInput" type="text" />
+        <input id="nameButton" type="button" value="Let's go!" />
+      </div>
+    </div>
     <div id="chat"></div>
     <div id="map"></div>
     <div id="container"></div>
     <div id="touchControls">
-      <div>
-        <div id="touchLeft"></div>
-        <div id="touchRight"></div>
-        <div id="touchUp"></div>
-        <div id="touchDown"></div>
+      <div id="touchControlsContainer">
+        <div class="touchDirection" id="touchLeft"></div>
+        <div class="touchDirection" id="touchRight"></div>
+        <div class="touchDirection" id="touchUp"></div>
+        <div class="touchDirection" id="touchDown"></div>
       </div>
     </div>
   </body>

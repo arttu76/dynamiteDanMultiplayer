@@ -10,7 +10,7 @@ export default {
 	devServer: {
 		proxy: {
 			'/socket.io/': 'http://localhost:55080/socket.io/',
-		  },
+		},
 		static: {
 			directory: path.join(__dirname, 'dist'),
 		},
@@ -27,23 +27,26 @@ export default {
 		publicPath: "",
 		clean: true
 	},
-	plugins: [new HtmlWebpackPlugin({
-		filename: 'index.html',
-		inject: true,
-		template: 'resources/index.html',
-		favicon: "resources/favicon.ico"
-	})],
+	plugins: [
+		new HtmlWebpackPlugin({
+			filename: 'index.html',
+			inject: true,
+			template: 'resources/index.html',
+			favicon: "resources/favicon.ico"
+		})
+	],
 	module: {
 		rules: [{
 			test: /\.ts$/,
 			use: 'ts-loader',
 			exclude: /node_modules/,
 		}, {
-			test: /\.css$/i,
-			use: ['style-loader', 'css-loader'],
-		}, {
-			test: /\.(png|jpg|mp3)$/i,
-			type: 'asset/resource',
+			test: /\.s[ac]ss$/i,
+			use: [
+				"style-loader",
+				"css-loader",
+				"sass-loader"
+			],
 		}],
 	},
 	performance: {

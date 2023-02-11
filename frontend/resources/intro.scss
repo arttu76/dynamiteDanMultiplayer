@@ -1,0 +1,48 @@
+#intro {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    font-size: 30px;
+    color: white;
+    background: linear-gradient(
+        rgba(0, 0, 0, 0.2), 
+        rgba(0, 0, 0, 0.8)
+      ),url("intro.jpg");
+    background-size: cover;
+    background-position: center center;
+
+    & > * {
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    input {
+        display: inline-block;
+        border-radius: 10px;
+        font-size: 30px;
+        &[type=text] {
+            width: 60%;
+            background: none;
+            border: 2px solid rgba(255,255,255,0.25);
+            color: white;
+            &:focus{
+                border: 2px solid rgba(255,255,255,0.75);
+            }        
+        }
+        &[type=button] {
+            cursor: pointer;
+            color: black;
+            background: white;
+            border: 2px solid white;
+        }
+    }
+
+}

@@ -30,13 +30,13 @@ export default class PlayerCountMap {
 
     addButton("Reset", () => {
       if (confirm("Really reset?")) {
-        location.href = "/?name=" + encodeURIComponent(this.playerManager.name);
+        location.href = "/?name=" + encodeURIComponent(this.playerManager.player.name);
       }
     });
 
     addButton("Rename", () => {
       this.playerManager.rename(
-        prompt("Enter your new nickname", this.playerManager.name)
+        prompt("Enter your new nickname", this.playerManager.player.name)
       );
     });
   }

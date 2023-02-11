@@ -38,8 +38,6 @@ export default class PlayerManager {
   player: Dan;
   fallHeight = 0;
 
-  name: string = "Anonymous";
-
   public pressedLeft: boolean = false;
   public pressedRight: boolean = false;
   public pressedJump: boolean = false;
@@ -48,20 +46,14 @@ export default class PlayerManager {
   networkManager: NetworkManager = null;
 
   constructor(
+    name: string,
     initialDanPosition: XY,
     private roomManager: RoomManager,
     private teleporterManager: TeleporterManager
   ) {
     this.roomManager = roomManager;
 
-    const nameMatch = location.search.match(/[&?]name=([^&$]*)/);
-    if (nameMatch && nameMatch[1]) {
-      this.name = decodeURIComponent(nameMatch[1]);
-    } else {
-      this.rename(prompt("Enter your nickname to get started"));
-    }
-
-    this.player = new Dan(initialDanPosition, false, 0, this.name);
+    this.player = new Dan(initialDanPosition, false, 0, name);
 
     this.networkManager = new NetworkManager(
       roomManager,
@@ -312,7 +304,7 @@ export default class PlayerManager {
 
     const room: XY = this.roomManager.getRoomXY();
     const pixels: XY = this.player;
-    const name = encodeURIComponent(this.name);
+    const name = encodeURIComponent(this.player.name);
 
     window.history.replaceState(
       null,
@@ -335,8 +327,8 @@ export default class PlayerManager {
   }
 
   rename(newName: string): void {
-    this.name = newName || 'Anonymous';
-    this.networkManager && this.networkManager.rename(this.name);
+    this.player.name = newName || 'Anonymous';
+    this.networkManager && this.networkManager.rename(this.player.name);
   }
 
   getTimeDiff(): number {

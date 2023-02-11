@@ -1,0 +1,13 @@
+#container {
+    position: absolute;
+    left: 0;
+    height: 160px;
+    width: 256px;
+    image-rendering: pixelated;
+    overflow: hidden;
+    
+    canvas {
+        z-index: 100;
+    }
+}
+

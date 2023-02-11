@@ -197,7 +197,7 @@ export default class NetworkManager {
     }
 
     this.roomSocket.emit(CommEventNames.ChatMessage, {
-      text: this.playerManager.name + ": " + text,
+      text: this.playerManager.player.name + ": " + text,
     } as CommChatMessage);
 
     return true;
