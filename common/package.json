@@ -1,0 +1,14 @@
+{
+  "name": "ddm-common",
+  "version": "1.0.0",
+  "description": "",
+  "main": "commonTypes.ts",
+"scripts": {
+    "build": "tsc --build"
+},
+  "dependencies": {
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
+}

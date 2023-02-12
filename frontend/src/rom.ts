@@ -1,7 +1,12 @@
-import { h, b } from "./util";
+import { h, b, d } from "./util";
 
-const buffer = require("arraybuffer-loader!../resources/dynamite-dan");
-const array = new Uint8Array(buffer);
+// @ts-ignore
+import snapshotHexString from "./dynamite-dan.sna";
+
+const array = new Uint8Array(snapshotHexString.length / 2);
+for (let i = 0; i < snapshotHexString.length; i += 2) {
+  array[i / 2] = d(snapshotHexString.substr(i, 2));
+}
 
 function getTrueOffset(val: number): number {
   return 27 + val - 16384;

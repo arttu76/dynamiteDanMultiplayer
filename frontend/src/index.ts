@@ -1,5 +1,3 @@
-import "../resources/index.scss";
-
 import getName from "./introManager";
 import resizer from "./resizer";
 

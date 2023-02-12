@@ -11,7 +11,7 @@ import {
   CommMonsterDeath,
   CommChatMessage,
   CommPlayerGlobals,
-} from "./../../commonTypes";
+} from "./../../common/commonTypes";
 import path from "path";
 
 const range = (maxExclusive: number) => Array.from(Array(maxExclusive).keys());
@@ -33,11 +33,11 @@ const serveStatic = (url: string, frontendDistFilename: string = null) => {
     );
   });
 };
-
 serveStatic("/favicon.ico");
 serveStatic("/", "index.html");
 serveStatic("/index.html");
-serveStatic("/[a-f0-9]*?.(js|jpg)$");
+
+app.use('/', express.static(path.join(  __dirname, "../../frontend/dist")));
 
 const global = io.of(CommChannels.Global);
 global.on("connection", (socketForGlobal) => {

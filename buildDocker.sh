@@ -1,8 +1,14 @@
+cd common
+npm install
+npm run build
+cd ..
+
 cd backend
 npm install
 npm run build
+cd ..
 
-cd ../frontend 
+cd frontend 
 npm install
 npm run build
 

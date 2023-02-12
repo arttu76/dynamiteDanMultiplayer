@@ -14,7 +14,7 @@ import {
   CommPlayerStateFromServer,
   CommRemoveOtherPlayerFromServer,
   CommPlayerGlobals,
-} from "./../../commonTypes";
+} from "./../../common/commonTypes";
 import RoomManager from "./roomManager";
 import PlayerManager from "./playerManager";
 import ChatUi from "./chatUi";
