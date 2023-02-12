@@ -2,7 +2,7 @@ FROM alpine:3.14
 
 RUN apk add --no-cache nodejs npm && npm install -g supervisor
 
-ADD commonTypes.js /dynamitedanmultiplayer/
+ADD common /dynamitedanmultiplayer/common
 
 WORKDIR /dynamitedanmultiplayer/backend
 ADD backend/package.json backend/package-lock.json ./
