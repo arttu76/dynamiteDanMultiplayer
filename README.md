@@ -1,11 +1,11 @@
 
 # Dynamite Dan Multiplayer
 
+Both frontend and backend TypeScript implementation share some interfaces. Those common interfaces are defined in /common/commonTypes.ts file.
+
 ## Frontend
 
-The frontend communicates with socket.io server assumed to be located in port 1000 on localhost.
-
-Both frontend and backend TypeScript implementation share some interfaces. Those common interfaces are defined in /commonTypes.ts file. Both frontend and backend "projects" include the same file. 
+Front uses socket.io to communicate with backend.
 
 ### How to build
 
