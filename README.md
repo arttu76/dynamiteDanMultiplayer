@@ -11,7 +11,7 @@ Front uses socket.io to communicate with backend.
 
 Have nodejs and npm installed, and do:
 
-    npm build
+    npm run build
 
 ### What to do with the build:
 
