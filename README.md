@@ -7,40 +7,26 @@ The frontend communicates with socket.io server assumed to be located in port 10
 
 Both frontend and backend TypeScript implementation share some interfaces. Those common interfaces are defined in /commonTypes.ts file. Both frontend and backend "projects" include the same file. 
 
-### How to build if you have nodejs and npm:
+### How to build
 
-    cd frontend
-    npm install
-    npm run build
+Have nodejs and npm installed, and do:
+
+    npm build
 
 ### What to do with the build:
-Open `frontend/dist/index.html` in your browser and make sure you have backend running.
+
+To run it:
+
+    node backend/dist/server.js
+
+And open your browser in port 55080.
 
 ### Development build
 If you want to do a development build which automatically updates components when you modify the code, do:
 
-    cd frontend
-    npm install
     npm run dev
 
-... but you must also be running the backend:
-
-## Backend
-### How to build the placeholder backend nodejs server if you have nodejs and npm:
-
-    cd backend
-    npm install
-    npm run build
-
-To run it, do:
-
-    cd backend
-    node dist/server.js
-
-To run the server in development mode, do:
-
-    cd backend
-    npm run dev
+Browser window will automatically open.
 
 ## Socket communication
 
@@ -71,5 +57,6 @@ Communication goes like this:
 ## TODO
 ### Frontend
  - fix iphone not closing sockets instantly when closing tab
+ - check that channel communication described above is up-to-date
 ### Backend
  - backend with golang

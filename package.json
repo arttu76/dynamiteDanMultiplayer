@@ -1,0 +1,24 @@
+{
+  "name": "ddm",
+  "version": "1.0.0",
+  "scripts": {
+    "buildCommon": "cd common && npm install && npm run build",
+    "buildFrontend": "cd frontend && npm install && npm run build",
+    "buildBackend": "cd backend && npm install && npm run build",
+    "build": "npm run buildCommon && concurrently npm:buildFrontend npm:buildBackend",
+    "devFrontend": "cd frontend && npm install && npm run dev",
+    "devBackend": "cd backend && npm install && npm run dev",
+    "dev": "npm run buildCommon && concurrently ---handle-input --default-input-target 1 npm:devBackend npm:devFrontend",
+    "redeploy": "npm run build && ./buildDocker.sh && ./pushToDigitalOcean.sh && ./k8s-redeploy.sh"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pm2": "^5.2.2",
+    "socket.io": "^4.6.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}
