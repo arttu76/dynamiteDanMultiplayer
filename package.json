@@ -9,7 +9,7 @@
     "devFrontend": "cd frontend && npm install && npm run dev",
     "devBackend": "cd backend && npm install && npm run dev",
     "dev": "npm run buildCommon && concurrently ---handle-input --default-input-target 1 npm:devBackend npm:devFrontend",
-    "redeploy": "npm run build && ./buildDocker.sh && ./pushToDigitalOcean.sh && ./k8s-redeploy.sh"
+    "redeploy": "npm run build && ./buildDocker.sh && cd deployment && ./pushToDigitalOcean.sh && ./k8s-redeploy.sh"
   },
   "author": "",
   "license": "ISC",
