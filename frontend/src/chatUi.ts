@@ -24,7 +24,7 @@ export default class ChatUi {
     });
     const containerInnerDiv = this.chatContainer.querySelector("div");
     containerInnerDiv.appendChild(input);
-    containerInnerDiv.scrollTop = containerInnerDiv.scrollHeight;
+    this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
     focus && input.focus();
   }
 
