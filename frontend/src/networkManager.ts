@@ -61,6 +61,13 @@ export default class NetworkManager {
       this.globalSocket.on(CommEventNames.PlayerGlobalsUpdate, updateGlobals);
 
       this.globalSocket.on(
+        CommEventNames.ChatMessage,
+        (chat: CommChatMessage) => {
+          this.chatUi.addLineToChat(chat.text, false);
+        }
+      );
+
+      this.globalSocket.on(
         CommEventNames.MonsterDeath,
         (death: CommMonsterDeath) => {
           this.roomManager.killMonster(
@@ -112,7 +119,6 @@ export default class NetworkManager {
       this.roomSocket?.disconnect();
       this.roomSocket = this.getSocket(CommChannels.RoomPrefix, roomNumber);
       this.removePlayersFromLocalClient();
-      this.chatUi.clearChat();
 
       this.roomSocket?.on(
         CommEventNames.PlayerStatusFromServer,
@@ -153,13 +159,6 @@ export default class NetworkManager {
           this.removePlayersFromLocalClient(id);
         }
       );
-
-      this.roomSocket?.on(
-        CommEventNames.ChatMessage,
-        (chat: CommChatMessage) => {
-          this.chatUi.addLineToChat(chat.text, false);
-        }
-      );
     }
 
     if (this.roomSocket?.connected) {
@@ -192,11 +191,11 @@ export default class NetworkManager {
   }
 
   sendChat(text: string): boolean {
-    if (!this.roomSocket?.connected) {
+    if (!this.globalSocket?.connected) {
       return false;
     }
 
-    this.roomSocket.emit(CommEventNames.ChatMessage, {
+    this.globalSocket.emit(CommEventNames.ChatMessage, {
       text: this.playerManager.player.name + ": " + text,
     } as CommChatMessage);
 

@@ -48,6 +48,10 @@ global.on("connection", (socketForGlobal) => {
     } as CommInitResponse);
   });
 
+  socketForGlobal.on(CommEventNames.ChatMessage, (chat: CommChatMessage) => {
+    global.emit(CommEventNames.ChatMessage, chat);
+  });
+
   socketForGlobal.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
     monsterDeaths = monsterDeaths.filter(
       (md) =>
@@ -115,10 +119,6 @@ range(48).forEach((roomNumber) => {
         } as CommPlayerStateFromServer);
       }
     );
-
-    socketForRoom.on(CommEventNames.ChatMessage, (chat: CommChatMessage) => {
-      roomSpecific.emit(CommEventNames.ChatMessage, chat);
-    });
 
     // prune unused connections
     setInterval(() => {
