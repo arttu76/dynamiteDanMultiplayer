@@ -31,6 +31,7 @@ const canBeStoodOnUdgIds = [
   59, // small green V
   26, // rope
   212, // lamp
+  209, // chequered grid in the toilet, room 5,4
 ];
 
 const ladderUdgIds = [
@@ -439,28 +440,38 @@ export default class RoomManager {
   }
 
   isOnTopOfAThingThatCanBeStoodOn(player: Dan): boolean {
-    const playerHeight=26;
-    const roomIndex=this.getRoomIndex();
+    const playerHeight = 26;
+    const roomIndex = this.getRoomIndex();
 
     // out of map
-    if(!(player.y+playerHeight<this.canBeStoodOnCollisionMaps[roomIndex].heightInPixels)) {
+    if (
+      !(
+        player.y + playerHeight <
+        this.canBeStoodOnCollisionMaps[roomIndex].heightInPixels
+      )
+    ) {
       return false;
     }
 
-    const getCollidingPixels = (y: number) => (
-      range(12)
-      .filter(x => this.canBeStoodOnCollisionMaps[roomIndex].pixels[player.y+y][player.x+x])
-    );
+    const getCollidingPixels = (y: number) =>
+      range(12).filter(
+        (x) =>
+          this.canBeStoodOnCollisionMaps[roomIndex].pixels[player.y + y][
+            player.x + x
+          ]
+      );
 
     const collisionsUnderFeet = getCollidingPixels(playerHeight);
-    if(!collisionsUnderFeet.length) {
+    if (!collisionsUnderFeet.length) {
       return false;
     }
-    
+
     // is the top of the feet INSIDE a collision block?
-    const collisionsOnePixelAboveUnderFeet = getCollidingPixels(playerHeight-1);
-    if(collisionsOnePixelAboveUnderFeet.length) {
-      return false; 
+    const collisionsOnePixelAboveUnderFeet = getCollidingPixels(
+      playerHeight - 1
+    );
+    if (collisionsOnePixelAboveUnderFeet.length) {
+      return false;
     }
 
     return true;

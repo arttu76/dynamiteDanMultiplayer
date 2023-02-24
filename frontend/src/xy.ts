@@ -20,8 +20,6 @@ export default class XY {
   }
 
   getMultiplied(multiplier: number) {
-    return new XY(this.x*multiplier, this.y*multiplier);
+    return new XY(this.x * multiplier, this.y * multiplier);
   }
-
-
 }
