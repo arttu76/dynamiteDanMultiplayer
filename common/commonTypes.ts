@@ -15,6 +15,11 @@ export enum CommEventNames {
     ChatMessage = 'c'
 }
 
+// info server receives from player when first initializing or when player wants to rename itself
+export interface CommSetNameRequest {
+    name: string; 
+}
+
 // info player receives from server when first initializing
 export interface CommInitResponse extends CommPlayerGlobals {
     serverTime: number; // server time in milliseconds 
@@ -26,8 +31,7 @@ export interface CommPlayerGlobals {
 }
 
 // state player sends to server 
-export interface CommPlayerStateFromPlayer {
-    name: string;
+export interface CommPlayerStateFromPlayer extends CommSetNameRequest {
     x: number;
     y: number;
     facingLeft: boolean;
@@ -53,4 +57,5 @@ export interface CommMonsterDeath {
 
 export interface CommChatMessage {
     text: string;
+    special: boolean;
 }

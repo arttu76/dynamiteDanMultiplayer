@@ -11,6 +11,7 @@ import {
   CommMonsterDeath,
   CommChatMessage,
   CommPlayerGlobals,
+  CommSetNameRequest,
 } from "./../../common/commonTypes";
 import path from "path";
 
@@ -19,6 +20,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+let namesAndGlobalSockets: { name: string; socket: Socket }[] = [];
 const socketsByRooms: Socket[][] = range(48).map(() => []);
 const newestPlayerStates: { [key: string]: CommPlayerStateFromPlayer } = {};
 let monsterDeaths: CommMonsterDeath[] = [];
@@ -37,20 +39,28 @@ serveStatic("/favicon.ico");
 serveStatic("/", "index.html");
 serveStatic("/index.html");
 
-app.use('/', express.static(path.join(  __dirname, "../../frontend/dist")));
+app.use("/", express.static(path.join(__dirname, "../../frontend/dist")));
 
 const global = io.of(CommChannels.Global);
+const sendChat = (message: CommChatMessage) =>
+  global.emit(CommEventNames.ChatMessage, message);
 global.on("connection", (socketForGlobal) => {
-  socketForGlobal.on(CommEventNames.Initialize, (_, callback) => {
+  socketForGlobal.on(CommEventNames.Initialize, (init, callback) => {
+    namesAndGlobalSockets.push({
+      name: init.name,
+      socket: socketForGlobal,
+    });
+    sendChat({
+      text: init.name + " joined!",
+      special: true,
+    });
     callback({
       serverTime: Date.now(),
       ...getPlayerGlobals(),
     } as CommInitResponse);
   });
 
-  socketForGlobal.on(CommEventNames.ChatMessage, (chat: CommChatMessage) => {
-    global.emit(CommEventNames.ChatMessage, chat);
-  });
+  socketForGlobal.on(CommEventNames.ChatMessage, sendChat);
 
   socketForGlobal.on(CommEventNames.MonsterDeath, (death: CommMonsterDeath) => {
     monsterDeaths = monsterDeaths.filter(
@@ -59,6 +69,38 @@ global.on("connection", (socketForGlobal) => {
     );
     monsterDeaths.push(death);
     global.emit(CommEventNames.MonsterDeath, death);
+  });
+
+  socketForGlobal.on(
+    CommEventNames.PlayerRenameRequest,
+    (rename: CommSetNameRequest) => {
+      const state = namesAndGlobalSockets.find(
+        (ns) => ns.socket.id === socketForGlobal.id
+      );
+      if (state) {
+        const oldName = state.name;
+        state.name = rename.name;
+        sendChat({
+          text: oldName + " is now known as " + state.name,
+          special: true,
+        });
+      }
+    }
+  );
+
+  socketForGlobal.on("disconnect", () => {
+    const disconnectedPlayer = namesAndGlobalSockets.find(
+      (ns) => ns.socket.id === socketForGlobal.id
+    );
+    if (disconnectedPlayer) {
+      sendChat({
+        text: disconnectedPlayer.name + " disconnected ;(",
+        special: true,
+      });
+      namesAndGlobalSockets = namesAndGlobalSockets.filter(
+        (ns) => ns.socket.id !== socketForGlobal.id
+      );
+    }
   });
 });
 
@@ -81,7 +123,11 @@ range(48).forEach((roomNumber) => {
     // tell about other players
     socketsByRooms[roomNumber]
       // don't tell about ourselves & tell only players we know something about
-      .filter((playerSocket) => playerSocket.id !== socketForRoom.id && newestPlayerStates[playerSocket.id]?.name)
+      .filter(
+        (playerSocket) =>
+          playerSocket.id !== socketForRoom.id &&
+          newestPlayerStates[playerSocket.id]?.name
+      )
       .forEach((playerSocket) => {
         socketForRoom.emit(CommEventNames.PlayerStatusFromServer, {
           ...newestPlayerStates[playerSocket.id],

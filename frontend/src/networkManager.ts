@@ -14,6 +14,7 @@ import {
   CommPlayerStateFromServer,
   CommRemoveOtherPlayerFromServer,
   CommPlayerGlobals,
+  CommSetNameRequest,
 } from "./../../common/commonTypes";
 import RoomManager from "./roomManager";
 import PlayerManager from "./playerManager";
@@ -49,7 +50,9 @@ export default class NetworkManager {
 
       this.globalSocket.emit(
         CommEventNames.Initialize,
-        null,
+        {
+          name: this.playerManager.player.name,
+        } as CommSetNameRequest,
         (initReply: CommInitResponse) => {
           this.timeDiff = Date.now() - initReply.serverTime;
           updateGlobals(initReply);
@@ -63,7 +66,7 @@ export default class NetworkManager {
       this.globalSocket.on(
         CommEventNames.ChatMessage,
         (chat: CommChatMessage) => {
-          this.chatUi.addLineToChat(chat.text, false);
+          this.chatUi.addLineToChat(chat);
         }
       );
 
@@ -185,7 +188,9 @@ export default class NetworkManager {
 
   rename(newName: string) {
     if (this.globalSocket?.connected) {
-      this.globalSocket.emit(CommEventNames.PlayerRenameRequest, newName);
+      this.globalSocket.emit(CommEventNames.PlayerRenameRequest, {
+        name: newName,
+      } as CommSetNameRequest);
       this.playerManager.player.rename(newName);
     }
   }
