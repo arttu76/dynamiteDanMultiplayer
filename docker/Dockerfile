@@ -1,14 +1,14 @@
 FROM alpine:3.14
 
-RUN apk add --no-cache nodejs npm && npm install -g supervisor
+RUN apk add --no-cache nodejs npm
 
 ADD common /dynamitedanmultiplayer/common
 
 WORKDIR /dynamitedanmultiplayer/backend
 ADD backend/package.json backend/package-lock.json ./
 ADD backend/dist dist
-RUN npm ci
+RUN npm ci && chmod 777 /dynamitedanmultiplayer/backend/dist/server.js
 
 ADD frontend/dist /dynamitedanmultiplayer/frontend/dist
 
-ENTRYPOINT [ "/dynamitedanmultiplayer/backend/node_modules/pm2/bin/pm2-runtime", "/dynamitedanmultiplayer/backend/dist/server.js" ]
+ENTRYPOINT [ "sh", "-c", "node /dynamitedanmultiplayer/backend/dist/server.js" ]
