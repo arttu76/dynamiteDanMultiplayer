@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^7.6.0",
-    "puppeteer": "^19.7.0"
+    "concurrently": "^8.2.2",
+    "puppeteer": "^22.10.0"
   }
 }
