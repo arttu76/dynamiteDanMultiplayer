@@ -4,8 +4,8 @@ metadata:
   name: dyndan-service
 spec:
   ports:
-  - port: 80
-    targetPort: dyndan-port
+    - port: 80
+      targetPort: dyndan-port
   selector:
     app: dyndan-deployment
 ---
@@ -24,19 +24,25 @@ spec:
         app: dyndan-deployment
     spec:
       containers:
-      - name: dyndan-deployment
-        image: registry.digitalocean.com/solvalou-docker/dynamitedanmultiplayer:latest
-        imagePullPolicy: Always
-        ports:
-          - name: dyndan-port
-            containerPort: 55080
-            protocol: TCP
-        livenessProbe:
-          httpGet:
-            path: /
-            port: dyndan-port
-          initialDelaySeconds: 3
-          periodSeconds: 120
+        - name: dyndan-deployment
+          image: europe-west4-docker.pkg.dev/tidal-anvil-395715/solvalou-artifact-registry/dynamitedanmultiplayer:latest
+          imagePullPolicy: Always
+          ports:
+            - name: dyndan-port
+              containerPort: 55080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: dyndan-port
+            initialDelaySeconds: 3
+            periodSeconds: 120
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "20Mi"
+      imagePullSecrets:
+        - name: gcr-artifact-registry-read-key       
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -47,4 +53,3 @@ spec:
   selector:
     matchLabels:
       app: dyndan-deployment
-
