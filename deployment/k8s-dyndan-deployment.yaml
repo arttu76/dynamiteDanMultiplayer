@@ -40,7 +40,7 @@ spec:
           resources:
             limits:
               cpu: "500m"
-              memory: "20Mi"
+              memory: "128Mi"
       imagePullSecrets:
         - name: gcr-artifact-registry-read-key       
 ---
